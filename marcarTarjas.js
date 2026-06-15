@@ -24,14 +24,26 @@
     });
   }
 
-  /** Recebe o .docx (ArrayBuffer), marca as tarjas e devolve novo ArrayBuffer. */
+  /**
+   * Recebe o .docx (ArrayBuffer), marca as tarjas (banners → Heading1) E injeta
+   * os estilos de cor de fonte (ver cores.js). Devolve { arrayBuffer, cores }.
+   */
   async function marcarTarjasDocx(arrayBuffer) {
     const Zip = (typeof JSZip !== 'undefined') ? JSZip : (await import('jszip')).default;
+    const CoresMod = (typeof Cores !== 'undefined') ? Cores : require('./cores.js');
     // JSZip.loadAsync aceita ArrayBuffer nativamente no browser e no Node.
     const zip = await Zip.loadAsync(arrayBuffer);
-    const xml = await zip.file('word/document.xml').async('string');
-    zip.file('word/document.xml', marcarTarjas(xml));
-    return zip.generateAsync({ type: 'arraybuffer' });
+    let doc = await zip.file('word/document.xml').async('string');
+    let styles = await zip.file('word/styles.xml').async('string');
+
+    doc = marcarTarjas(doc); // tarjas azuis viram Heading1
+    const cores = CoresMod.coresDoDocumento(doc);
+    const comCor = CoresMod.injetarEstilosCor(doc, styles, cores);
+
+    zip.file('word/document.xml', comCor.doc);
+    zip.file('word/styles.xml', comCor.styles);
+    const out = await zip.generateAsync({ type: 'arraybuffer' });
+    return { arrayBuffer: out, cores };
   }
 
   const api = { marcarTarjas, marcarTarjasDocx };

@@ -10,13 +10,14 @@ import path from 'node:path';
 import vm from 'node:vm';
 
 describe('carregamento dos scripts do popup (escopo global compartilhado)', () => {
-  it('os 3 arquivos coexistem e definem window.Parser.docxParaSecoes', () => {
+  it('os scripts coexistem e definem window.Parser.docxParaSecoes', () => {
     const ctx = { window: {}, JSZip: function () {}, mammoth: {}, DOMParser: function () {}, console };
     vm.createContext(ctx);
-    for (const f of ['marcarTarjas.js', 'fatiarSecoes.js', 'parser.js']) {
+    for (const f of ['cores.js', 'marcarTarjas.js', 'fatiarSecoes.js', 'parser.js']) {
       const codigo = fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
       expect(() => vm.runInContext(codigo, ctx, { filename: f })).not.toThrow();
     }
+    expect(typeof ctx.window.Cores).toBe('object');
     expect(typeof ctx.window.MarcarTarjas).toBe('object');
     expect(typeof ctx.window.FatiarSecoes).toBe('object');
     expect(typeof ctx.window.Parser?.docxParaSecoes).toBe('function');

@@ -32,7 +32,7 @@ describe('marcarTarjasDocx + mammoth (fixture real)', () => {
   it('produz exatamente 2 <h1> com os títulos das tarjas', async () => {
     const buf = fs.readFileSync(path.join(__dirname, '..', 'Aula modelo (1).docx'));
     const ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
-    const marcado = await marcarTarjasDocx(ab);
+    const { arrayBuffer: marcado } = await marcarTarjasDocx(ab);
     // NOTE: mammoth in Node requires { buffer: Buffer }, not { arrayBuffer }.
     const { value: html } = await mammoth.convertToHtml({ buffer: Buffer.from(marcado) });
     const h1s = [...html.matchAll(/<h1[^>]*>(.*?)<\/h1>/g)].map((m) => m[1].replace(/<[^>]+>/g, '').trim());

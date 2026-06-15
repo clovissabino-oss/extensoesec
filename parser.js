@@ -37,20 +37,21 @@
      * @returns {Promise<Array<{titulo:string, html:string, resumo:object}>>}
      */
     async docxParaSecoes(arrayBuffer, opts = {}) {
-      const marcado = await MarcarTarjas.marcarTarjasDocx(arrayBuffer);
-      const { value: html, messages } = await mammoth.convertToHtml(
-        { arrayBuffer: marcado },
-        {
-          styleMap: [
-            "p[style-name='heading 1'] => h1:fresh",
-            "p[style-name='heading 2'] => h2:fresh",
-            "p[style-name='heading 3'] => h3:fresh"
-          ]
-        }
-      );
+      const { arrayBuffer: marcado, cores } = await MarcarTarjas.marcarTarjasDocx(arrayBuffer);
+      // Exclui o branco (#FFFFFF): só faz sentido sobre a faixa azul (que o editor
+      // não aceita colar com fundo), senão vira texto branco invisível. Assim o
+      // título da tarja fica na cor padrão (visível). A faixa azul é tema da V2.
+      const coresVisiveis = cores.filter((c) => c !== 'FFFFFF');
+      const styleMap = [
+        "p[style-name='heading 1'] => h1:fresh",
+        "p[style-name='heading 2'] => h2:fresh",
+        "p[style-name='heading 3'] => h3:fresh"
+      ].concat(Cores.styleMapDeCores(coresVisiveis)); // preserva as cores de fonte
+      const { value: html, messages } = await mammoth.convertToHtml({ arrayBuffer: marcado }, { styleMap });
       // Surface mammoth warnings (estilos não mapeados etc.) para diagnóstico.
       (messages || []).filter((m) => m.type !== 'debug').forEach((m) => console.warn('[mammoth]', m.message));
-      let secoes = FatiarSecoes.fatiarSecoes(sanitizarHtml(html));
+      // inlineCores: class="cor-XXXXXX" -> style="color:#XXXXXX" (preservado na colagem).
+      let secoes = FatiarSecoes.fatiarSecoes(sanitizarHtml(Cores.inlineCores(html)));
       if (opts.ignorarImagens) {
         secoes = secoes.map((s) => ({
           ...s,
