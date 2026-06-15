@@ -1,50 +1,63 @@
-/* popup.js — orquestra: ler arquivo -> parsear -> preview -> enviar p/ content script */
+/* popup.js — ler .docx -> parser -> preview por seção -> confirmar -> injetar -> resumo */
 
-let blocosAtuais = [];
+let secoesAtuais = [];
 
 const $file = document.getElementById('file');
 const $drop = document.getElementById('drop');
 const $preview = document.getElementById('preview');
 const $status = document.getElementById('status');
 const $injetar = document.getElementById('injetar');
+const $ignorar = document.getElementById('ignorarImagens');
 
-$drop.addEventListener('dragover', (e) => { e.preventDefault(); });
+$drop.addEventListener('dragover', (e) => e.preventDefault());
 $drop.addEventListener('drop', (e) => {
   e.preventDefault();
   if (e.dataTransfer.files[0]) processar(e.dataTransfer.files[0]);
 });
 $file.addEventListener('change', () => { if ($file.files[0]) processar($file.files[0]); });
+$ignorar.addEventListener('change', () => { if ($file.files[0]) processar($file.files[0]); });
 
 async function processar(file) {
-  if (!file.name.endsWith('.docx')) { $status.textContent = 'Selecione um .docx'; return; }
+  if (!file.name.toLowerCase().endsWith('.docx')) { $status.textContent = 'Selecione um arquivo .docx'; return; }
   $status.textContent = 'Lendo documento...';
   try {
     const buffer = await file.arrayBuffer();
-    blocosAtuais = await Parser.docxParaBlocos(buffer);
-    renderPreview(blocosAtuais);
-    $status.textContent = `${blocosAtuais.length} blocos prontos.`;
-    $injetar.disabled = blocosAtuais.length === 0;
+    secoesAtuais = await Parser.docxParaSecoes(buffer, { ignorarImagens: $ignorar.checked });
+    renderPreview(secoesAtuais);
+    $status.textContent = `${secoesAtuais.length} bloco(s) pronto(s).`;
+    $injetar.disabled = secoesAtuais.length === 0;
   } catch (err) {
     console.error(err);
     $status.textContent = 'Erro ao ler o arquivo.';
   }
 }
 
-function renderPreview(blocos) {
+function renderPreview(secoes) {
   $preview.innerHTML = '';
-  blocos.forEach((b) => {
+  secoes.forEach((s, i) => {
     const div = document.createElement('div');
     div.className = 'bloco';
-    const label = b.tipo === 'titulo' ? `título h${b.nivel}` : b.tipo;
-    div.innerHTML = `<span class="tag">${label}</span>${(b.texto || b.tipo).slice(0, 80)}`;
+    const r = s.resumo;
+    const partes = [];
+    if (r.paragrafos) partes.push(`${r.paragrafos} parágrafos`);
+    if (r.imagens) partes.push(`${r.imagens} imagens`);
+    if (r.listas) partes.push(`${r.listas} listas`);
+    if (r.tabelas) partes.push(`${r.tabelas} tabelas`);
+    div.innerHTML =
+      `<span class="tag">Bloco ${i + 1}</span>${s.titulo || '(sem título)'}` +
+      `<br><span class="meta">${partes.join(' · ') || 'vazio'}</span>`;
     $preview.appendChild(div);
   });
 }
 
 $injetar.addEventListener('click', async () => {
+  if (!confirm(`Vai colar ${secoesAtuais.length} bloco(s) no item em foco. Continuar?`)) return;
   $status.textContent = 'Injetando...';
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  chrome.tabs.sendMessage(tab.id, { acao: 'INJETAR_BLOCOS', blocos: blocosAtuais }, (resp) => {
-    $status.textContent = resp?.ok ? `Injetados ${resp.qtd} blocos.` : 'Falhou — veja o console da página (F12).';
+  chrome.tabs.sendMessage(tab.id, { acao: 'INJETAR_SECOES', secoes: secoesAtuais }, (resp) => {
+    if (chrome.runtime.lastError) { $status.textContent = 'Abra o editor do LDI na aba ativa e tente de novo.'; return; }
+    if (!resp?.ok) { $status.textContent = `Falhou: ${resp?.erro || 'veja o console (F12)'}`; return; }
+    const nErros = resp.erros?.length || 0;
+    $status.textContent = `${resp.qtd} bloco(s) colado(s), ${nErros} erro(s).` + (nErros ? ' Veja o console (F12).' : '');
   });
 });
