@@ -1,61 +1,46 @@
 /**
  * parser.js
- * Converte o HTML semântico produzido pelo mammoth em uma lista de "blocos"
- * normalizados — o formato intermediário que o content.js vai injetar no LDI.
+ * Orquestra: .docx -> (marca tarjas) -> mammoth (HTML) -> fatia em seções.
+ * Cada seção vira um bloco no editor de LDI. Funciona 100% offline (só o .docx).
  *
- * Este é o coração da ferramenta e a parte que NÃO depende de engenharia reversa:
- * funciona 100% offline, só com o .docx. Ajuste o mapeamento conforme as regras
- * que você quiser (qual estilo do Word vira qual tipo de bloco).
+ * No browser, depende dos globais: MarcarTarjas, FatiarSecoes, mammoth.
  */
+
+/** Remove imagens do HTML (usado quando a pessoa marca "ignorar imagens"). */
+function removerImagens(html) {
+  return html.replace(/<img\b[^>]*>/gi, '');
+}
 
 const Parser = {
   /**
    * @param {ArrayBuffer} arrayBuffer  conteúdo bruto do .docx
-   * @returns {Promise<Array<Bloco>>}
+   * @param {{ ignorarImagens?: boolean }} [opts]
+   * @returns {Promise<Array<{titulo:string, html:string, resumo:object}>>}
    */
-  async docxParaBlocos(arrayBuffer) {
-    // 1) docx -> HTML semântico. O styleMap permite mapear estilos customizados
-    //    do Word (ex.: "Destaque Estratégia") para marcações próprias.
+  async docxParaSecoes(arrayBuffer, opts = {}) {
+    const marcado = await MarcarTarjas.marcarTarjasDocx(arrayBuffer);
     const { value: html } = await mammoth.convertToHtml(
-      { arrayBuffer },
+      { arrayBuffer: marcado },
       {
         styleMap: [
-          "p[style-name='Title'] => h1:fresh",
-          "p[style-name='Heading 1'] => h1:fresh",
-          "p[style-name='Heading 2'] => h2:fresh",
-          "p[style-name='Heading 3'] => h3:fresh"
+          "p[style-name='heading 1'] => h1:fresh",
+          "p[style-name='heading 2'] => h2:fresh",
+          "p[style-name='heading 3'] => h3:fresh"
         ]
       }
     );
-
-    // 2) HTML -> árvore -> lista de blocos
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-    const blocos = [];
-
-    for (const el of doc.body.children) {
-      const tag = el.tagName.toLowerCase();
-
-      if (/^h[1-6]$/.test(tag)) {
-        blocos.push({
-          tipo: 'titulo',
-          nivel: Number(tag[1]),          // H1 normalmente = nome do item; H2/H3 = subtítulo dentro do item
-          texto: el.textContent.trim(),
-          html: el.outerHTML
-        });
-      } else if (tag === 'p' && el.textContent.trim()) {
-        blocos.push({ tipo: 'texto', html: el.innerHTML, texto: el.textContent.trim() });
-      } else if (tag === 'ul' || tag === 'ol') {
-        blocos.push({ tipo: 'lista', ordenada: tag === 'ol', html: el.outerHTML });
-      } else if (tag === 'table') {
-        blocos.push({ tipo: 'tabela', html: el.outerHTML });
-      } else if (el.querySelector('img')) {
-        const img = el.querySelector('img');
-        blocos.push({ tipo: 'imagem', src: img.src, html: el.outerHTML });
-      }
+    let secoes = FatiarSecoes.fatiarSecoes(html);
+    if (opts.ignorarImagens) {
+      secoes = secoes.map((s) => ({
+        ...s,
+        html: removerImagens(s.html),
+        resumo: { ...s.resumo, imagens: 0 }
+      }));
     }
-    return blocos;
+    return secoes;
   }
 };
 
-// disponibiliza para popup.js e content.js
-if (typeof window !== 'undefined') window.Parser = Parser;
+const api = { Parser, removerImagens };
+if (typeof window !== 'undefined') { window.Parser = Parser; }
+if (typeof module !== 'undefined' && module.exports) { module.exports = api; }
