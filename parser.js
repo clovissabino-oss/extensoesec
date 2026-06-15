@@ -13,6 +13,23 @@
     return html.replace(/<img\b[^>]*>/gi, '');
   }
 
+  /**
+   * Sanitiza o HTML para o editor do LDI (ProseMirror/TipTap).
+   *
+   * Causa-raiz confirmada no editor real: ÂNCORAS VAZIAS (ex.:
+   * <a id="_heading=..."></a> — marcadores de cabeçalho do Word/Google Docs,
+   * presentes em TODO título) criam uma marca de link sem conteúdo que quebra o
+   * ProseMirror ("Cannot read properties of undefined (reading 'nodeSize')").
+   *
+   * Aqui DESEMBRULHAMOS todas as âncoras: a vazia some (o vilão), e as com texto
+   * (notas de rodapé, links) viram texto puro — perdem só a "clicabilidade", que
+   * de todo modo não é confiável dentro do LDI. Preservamos <sup>/<sub> para não
+   * estragar expoentes/índices (m², H₂O) de outras matérias.
+   */
+  function sanitizarHtml(html) {
+    return html.replace(/<a\b[^>]*>([\s\S]*?)<\/a>/gi, '$1');
+  }
+
   const Parser = {
     /**
      * @param {ArrayBuffer} arrayBuffer  conteúdo bruto do .docx
@@ -33,7 +50,7 @@
       );
       // Surface mammoth warnings (estilos não mapeados etc.) para diagnóstico.
       (messages || []).filter((m) => m.type !== 'debug').forEach((m) => console.warn('[mammoth]', m.message));
-      let secoes = FatiarSecoes.fatiarSecoes(html);
+      let secoes = FatiarSecoes.fatiarSecoes(sanitizarHtml(html));
       if (opts.ignorarImagens) {
         secoes = secoes.map((s) => ({
           ...s,
@@ -45,7 +62,7 @@
     }
   };
 
-  const api = { Parser, removerImagens };
+  const api = { Parser, removerImagens, sanitizarHtml };
   if (typeof window !== 'undefined') { window.Parser = Parser; }
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; }
 })();

@@ -94,19 +94,6 @@
 
   /** Injeta as seções, uma por bloco. Devolve { qtd, erros }. */
   async function injetarSecoes(secoes) {
-    // DEBUG (temporário): guarda as seções e loga um "fingerprint" do HTML real,
-    // para diagnosticar no console da página qual construto quebra o editor.
-    try {
-      window.__INJETOR_SECOES = secoes;
-      secoes.forEach((s, idx) => {
-        const d = document.createElement('div'); d.innerHTML = s.html;
-        const tc = {};
-        d.querySelectorAll('*').forEach((e) => { const t = e.tagName.toLowerCase(); tc[t] = (tc[t] || 0) + 1; });
-        const imgs = [...d.querySelectorAll('img')].map((im) => (im.getAttribute('src') || '').length);
-        console.log(`[Injetor LDI][FP] bloco ${idx + 1} "${s.titulo}" len=${s.html.length} tags=${JSON.stringify(tc)} imgs=${JSON.stringify(imgs)}`);
-      });
-    } catch (e) { console.warn('[Injetor LDI][FP] erro', e); }
-
     const editorInicial = acharEditorFocado();
     if (!editorInicial) {
       throw new Error('Editor não encontrado. Clique dentro do bloco de texto do item antes de injetar.');
