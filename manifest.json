@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Injetor LDI — Estratégia",
-  "version": "0.1.0",
-  "description": "Importa conteúdo de um arquivo .docx para os blocos do editor de Livro Digital Interativo.",
+  "version": "0.2.0",
+  "description": "Importa um .docx de aula para os blocos do editor de Livro Digital Interativo, um bloco por tarja azul.",
   "permissions": ["activeTab", "scripting", "storage"],
   "host_permissions": [
     "https://*.estrategia.com/*",
