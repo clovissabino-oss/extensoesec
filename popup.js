@@ -27,8 +27,9 @@ async function processar(file) {
     $status.textContent = `${secoesAtuais.length} bloco(s) pronto(s).`;
     $injetar.disabled = secoesAtuais.length === 0;
   } catch (err) {
-    console.error(err);
-    $status.textContent = 'Erro ao ler o arquivo.';
+    console.error('[Injetor LDI] erro ao processar o .docx:', err);
+    const msg = (err && err.message) ? err.message : String(err);
+    $status.textContent = 'Erro ao ler o arquivo: ' + msg;
   }
 }
 
