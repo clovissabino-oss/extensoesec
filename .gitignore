@@ -1,0 +1,4 @@
+node_modules/
+
+# Conteudo proprietario: aulas reais nao vao para o repo publico
+*.docx

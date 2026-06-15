@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "Injetor LDI — Estratégia",
+  "version": "0.1.0",
+  "description": "Importa conteúdo de um arquivo .docx para os blocos do editor de Livro Digital Interativo.",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": [
+    "https://*.estrategia.com/*",
+    "https://*.estrategiaconcursos.com.br/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Injetor LDI"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.estrategia.com/*",
+        "https://*.estrategiaconcursos.com.br/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
