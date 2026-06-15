@@ -45,14 +45,14 @@ function renderPreview(secoes) {
     if (r.listas) partes.push(`${r.listas} listas`);
     if (r.tabelas) partes.push(`${r.tabelas} tabelas`);
     div.innerHTML =
-      `<span class="tag">Bloco ${i + 1}</span>${s.titulo || '(sem título)'}` +
+      `<span class="tag">Seção ${i + 1}</span>${s.titulo || '(sem título)'}` +
       `<br><span class="meta">${partes.join(' · ') || 'vazio'}</span>`;
     $preview.appendChild(div);
   });
 }
 
 $injetar.addEventListener('click', async () => {
-  if (!confirm(`Vai colar ${secoesAtuais.length} bloco(s) no item em foco. Continuar?`)) return;
+  if (!confirm(`Vai colar o conteúdo (${secoesAtuais.length} seção(ões)) no bloco em foco. Continuar?`)) return;
   $injetar.disabled = true; // evita injeção duplicada por cliques repetidos
   $status.textContent = 'Injetando...';
   try {
@@ -63,8 +63,7 @@ $injetar.addEventListener('click', async () => {
       $injetar.disabled = false;
       if (chrome.runtime.lastError) { $status.textContent = 'Falha ao falar com a página: ' + chrome.runtime.lastError.message; return; }
       if (!resp?.ok) { $status.textContent = `Falhou: ${resp?.erro || 'veja o console (F12)'}`; return; }
-      const nErros = resp.erros?.length || 0;
-      $status.textContent = `${resp.qtd} bloco(s) colado(s), ${nErros} erro(s).` + (nErros ? ' Veja o console (F12).' : '');
+      $status.textContent = `Conteúdo colado (${resp.qtd} seções). Confira e clique em Salvar.`;
     });
   } catch (e) {
     $injetar.disabled = false;

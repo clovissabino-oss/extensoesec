@@ -74,48 +74,25 @@
     alvo.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
   }
 
-  /** Cria um bloco de texto novo: clica "+ Adicionar bloco" e depois "TEXTO". */
-  async function adicionarBlocoTexto() {
-    const antes = editores().length;
-    const btn = acharPorTexto(TEXTO_BOTAO_BLOCO, false);
-    if (!btn) throw new Error('Botão "Adicionar bloco" não encontrado.');
-    btn.click();
-    let opTexto;
-    try {
-      opTexto = await esperarPor(() => acharPorTexto(TEXTO_OPCAO_TEXTO, true), 3000);
-    } catch {
-      throw new Error('Opção "TEXTO" não apareceu após clicar em Adicionar bloco.');
-    }
-    opTexto.click();
-    await esperarPor(() => (editores().length > antes ? editores()[editores().length - 1] : null), 6000);
-    await espera(150);
-    return editores()[editores().length - 1];
-  }
-
-  /** Injeta as seções, uma por bloco. Devolve { qtd, erros }. */
+  /**
+   * Injeta a aula no bloco em foco, em UMA colagem (MVP confiável).
+   * As tarjas azuis viram títulos (<h1>) dentro do bloco. A separação em um
+   * bloco distinto por tarja fica para a V2 — depende de automatizar o menu
+   * "+ Adicionar bloco" → "Texto" da plataforma, que não responde a um clique
+   * simples (ver acharPorTexto/esperarPor, mantidos para esse trabalho futuro).
+   * Devolve { qtd, erros }.
+   */
   async function injetarSecoes(secoes) {
-    const editorInicial = acharEditorFocado();
-    if (!editorInicial) {
+    const editor = acharEditorFocado();
+    if (!editor) {
       throw new Error('Editor não encontrado. Clique dentro do bloco de texto do item antes de injetar.');
     }
-    const erros = [];
-    let qtd = 0;
-    for (let i = 0; i < secoes.length; i++) {
-      const sec = secoes[i];
-      try {
-        const editor = (i === 0) ? editorInicial : await adicionarBlocoTexto();
-        simularColagem(editor, sec.html, sec.titulo);
-        qtd++;
-        console.log(`[Injetor LDI] seção ${i + 1}/${secoes.length} "${sec.titulo || '(sem título)'}" colada ✓`);
-        await espera(150);
-      } catch (e) {
-        console.error(`[Injetor LDI] falha na seção ${i + 1}:`, e);
-        erros.push({ secao: i + 1, titulo: sec.titulo, msg: e.message });
-      }
-    }
-    alert('Injetor LDI: ' + qtd + ' bloco(s) colado(s)' +
-      (erros.length ? ', ' + erros.length + ' com erro (veja o console F12).' : '. Confira e clique em Salvar.'));
-    return { qtd, erros };
+    const html = secoes.map((s) => s.html).join('\n');
+    const texto = secoes.map((s) => s.titulo).filter(Boolean).join('\n');
+    simularColagem(editor, html, texto);
+    console.log(`[Injetor LDI] ${secoes.length} seção(ões) coladas no bloco em foco.`);
+    alert('Injetor LDI: conteúdo colado no bloco. Confira e clique em Salvar.');
+    return { qtd: secoes.length, erros: [] };
   }
 
   // Exports para os testes (Node/Vitest).
