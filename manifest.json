@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Injetor LDI — Estratégia",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Importa um .docx de aula para o editor de Livro Digital Interativo, preservando formatação e imagens.",
   "permissions": ["activeTab", "scripting", "storage"],
   "host_permissions": [

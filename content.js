@@ -4,8 +4,8 @@
  * declarado em content_scripts. Idempotente: só registra o listener uma vez.
  *
  * SEM API. Injeta seção por seção via colagem simulada (ClipboardEvent 'paste').
- * Cada seção = um bloco. A 1ª vai no editor em foco; as demais são criadas
- * clicando "+ Adicionar bloco" e depois "TEXTO" (o + abre um menu de tipos).
+ * Cada tarja azul = um bloco novo: a 1ª seção vai no editor em foco; as demais
+ * são criadas clicando "+ Adicionar bloco" e depois "Texto".
  */
 (function () {
   const TEXTO_BOTAO_BLOCO = 'adicionar bloco';
@@ -27,6 +27,13 @@
 
   /** Compat. com os testes: busca por inclusão. */
   function acharBotaoPorTexto(texto) { return acharPorTexto(texto, false); }
+
+  /** O <li> VISÍVEL do menu cujo texto é exatamente "Texto". */
+  function acharLiTexto() {
+    return [...document.querySelectorAll('li')].find(
+      (li) => (li.textContent || '').trim().toLowerCase() === TEXTO_OPCAO_TEXTO && li.offsetParent
+    );
+  }
 
   function editores() {
     return document.querySelectorAll('.ProseMirror,[contenteditable="true"]');
@@ -55,6 +62,16 @@
     });
   }
 
+  /**
+   * Dispara uma sequência COMPLETA de eventos de mouse num elemento.
+   * O menu "Texto" do LDI não responde a um .click() simples — o handler do Vue
+   * exige pointerdown/mousedown/pointerup/mouseup/click no elemento interno.
+   */
+  function dispararMouse(el) {
+    ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'].forEach((tipo) =>
+      el.dispatchEvent(new MouseEvent(tipo, { bubbles: true, cancelable: true, view: window })));
+  }
+
   /** Simula colagem de HTML no ProseMirror/TipTap. */
   function simularColagem(alvo, html, texto) {
     alvo.focus();
@@ -74,25 +91,52 @@
     alvo.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
   }
 
+  /** Cria um bloco de texto novo (+ Adicionar bloco → Texto) e devolve o editor dele. */
+  async function adicionarBlocoTexto() {
+    const antes = editores().length;
+    const botao = acharPorTexto(TEXTO_BOTAO_BLOCO, false);
+    if (!botao) throw new Error('Botão "Adicionar bloco" não encontrado.');
+    botao.click();
+    let li;
+    try {
+      li = await esperarPor(acharLiTexto, 3000);
+    } catch (e) {
+      throw new Error('Opção "Texto" não apareceu após "Adicionar bloco".');
+    }
+    dispararMouse(li.querySelector('span') || li);
+    await esperarPor(() => (editores().length > antes ? editores()[editores().length - 1] : null), 6000);
+    await espera(200);
+    return editores()[editores().length - 1];
+  }
+
   /**
-   * Injeta a aula no bloco em foco, em UMA colagem (MVP confiável).
-   * As tarjas azuis viram títulos (<h1>) dentro do bloco. A separação em um
-   * bloco distinto por tarja fica para a V2 — depende de automatizar o menu
-   * "+ Adicionar bloco" → "Texto" da plataforma, que não responde a um clique
-   * simples (ver acharPorTexto/esperarPor, mantidos para esse trabalho futuro).
-   * Devolve { qtd, erros }.
+   * Injeta as seções: 1 bloco por tarja azul. A 1ª vai no editor em foco; as
+   * demais em blocos novos. Preserva formatação (títulos, negrito, listas,
+   * tabelas, imagens). Continua mesmo se uma seção falhar. Devolve { qtd, erros }.
    */
   async function injetarSecoes(secoes) {
-    const editor = acharEditorFocado();
-    if (!editor) {
+    const editorInicial = acharEditorFocado();
+    if (!editorInicial) {
       throw new Error('Editor não encontrado. Clique dentro do bloco de texto do item antes de injetar.');
     }
-    const html = secoes.map((s) => s.html).join('\n');
-    const texto = secoes.map((s) => s.titulo).filter(Boolean).join('\n');
-    simularColagem(editor, html, texto);
-    console.log(`[Injetor LDI] ${secoes.length} seção(ões) coladas no bloco em foco.`);
-    alert('Injetor LDI: conteúdo colado no bloco. Confira e clique em Salvar.');
-    return { qtd: secoes.length, erros: [] };
+    const erros = [];
+    let qtd = 0;
+    for (let i = 0; i < secoes.length; i++) {
+      const sec = secoes[i];
+      try {
+        const editor = (i === 0) ? editorInicial : await adicionarBlocoTexto();
+        simularColagem(editor, sec.html, sec.titulo);
+        qtd++;
+        console.log(`[Injetor LDI] seção ${i + 1}/${secoes.length} "${sec.titulo || '(sem título)'}" colada ✓`);
+        await espera(250);
+      } catch (e) {
+        console.error(`[Injetor LDI] falha na seção ${i + 1}:`, e);
+        erros.push({ secao: i + 1, titulo: sec.titulo, msg: e.message });
+      }
+    }
+    alert('Injetor LDI: ' + qtd + ' bloco(s) colado(s)' +
+      (erros.length ? ', ' + erros.length + ' com erro (veja o console F12).' : '. Confira e clique em Salvar.'));
+    return { qtd, erros };
   }
 
   // Exports para os testes (Node/Vitest).

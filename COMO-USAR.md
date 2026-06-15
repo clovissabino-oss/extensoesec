@@ -1,9 +1,8 @@
 # Injetor LDI — Como usar (equipe de cadastro)
 
 Importa o conteúdo de um `.docx` de aula para o editor de Livro Digital
-Interativo, preservando formatação e imagens. As **tarjas azuis** viram
-**títulos** dentro do bloco. (Nesta versão o conteúdo entra todo no bloco em
-foco; a separação em um bloco distinto por tarja virá numa próxima versão.)
+Interativo, preservando formatação e imagens. **Cada tarja azul** da aula vira
+**um bloco novo** (o 1º vai no bloco em foco; os demais são criados automaticamente).
 
 ## Instalar (uma vez)
 1. Baixe a pasta do injetor (no GitHub: **Code → Download ZIP**) e descompacte.
