@@ -58,6 +58,16 @@
   /** Simula colagem de HTML no ProseMirror/TipTap. */
   function simularColagem(alvo, html, texto) {
     alvo.focus();
+    // O ProseMirror precisa de uma SELEÇÃO válida no documento para colar; só
+    // focar não basta (gera "nodeSize of undefined"). Posiciona o cursor dentro.
+    try {
+      const sel = window.getSelection();
+      const range = document.createRange();
+      range.selectNodeContents(alvo);
+      range.collapse(true); // cursor no início do conteúdo do editor
+      sel.removeAllRanges();
+      sel.addRange(range);
+    } catch (e) { /* sem seleção: segue mesmo assim */ }
     const dt = new DataTransfer();
     dt.setData('text/html', html);
     dt.setData('text/plain', texto || '');
