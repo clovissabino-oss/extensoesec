@@ -55,12 +55,19 @@ $injetar.addEventListener('click', async () => {
   if (!confirm(`Vai colar ${secoesAtuais.length} bloco(s) no item em foco. Continuar?`)) return;
   $injetar.disabled = true; // evita injeção duplicada por cliques repetidos
   $status.textContent = 'Injetando...';
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  chrome.tabs.sendMessage(tab.id, { acao: 'INJETAR_SECOES', secoes: secoesAtuais }, (resp) => {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    // Garante que o content script está presente NESTA aba (não depende de F5/timing).
+    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['content.js'] });
+    chrome.tabs.sendMessage(tab.id, { acao: 'INJETAR_SECOES', secoes: secoesAtuais }, (resp) => {
+      $injetar.disabled = false;
+      if (chrome.runtime.lastError) { $status.textContent = 'Falha ao falar com a página: ' + chrome.runtime.lastError.message; return; }
+      if (!resp?.ok) { $status.textContent = `Falhou: ${resp?.erro || 'veja o console (F12)'}`; return; }
+      const nErros = resp.erros?.length || 0;
+      $status.textContent = `${resp.qtd} bloco(s) colado(s), ${nErros} erro(s).` + (nErros ? ' Veja o console (F12).' : '');
+    });
+  } catch (e) {
     $injetar.disabled = false;
-    if (chrome.runtime.lastError) { $status.textContent = 'Abra o editor do LDI na aba ativa e tente de novo.'; return; }
-    if (!resp?.ok) { $status.textContent = `Falhou: ${resp?.erro || 'veja o console (F12)'}`; return; }
-    const nErros = resp.erros?.length || 0;
-    $status.textContent = `${resp.qtd} bloco(s) colado(s), ${nErros} erro(s).` + (nErros ? ' Veja o console (F12).' : '');
-  });
+    $status.textContent = 'Não consegui injetar nesta aba: ' + e.message + ' — abra o editor do LDI e tente de novo.';
+  }
 });
