@@ -19,7 +19,7 @@ const Parser = {
    */
   async docxParaSecoes(arrayBuffer, opts = {}) {
     const marcado = await MarcarTarjas.marcarTarjasDocx(arrayBuffer);
-    const { value: html } = await mammoth.convertToHtml(
+    const { value: html, messages } = await mammoth.convertToHtml(
       { arrayBuffer: marcado },
       {
         styleMap: [
@@ -29,6 +29,8 @@ const Parser = {
         ]
       }
     );
+    // Surface mammoth warnings (estilos não mapeados etc.) para diagnóstico.
+    (messages || []).filter((m) => m.type !== 'debug').forEach((m) => console.warn('[mammoth]', m.message));
     let secoes = FatiarSecoes.fatiarSecoes(html);
     if (opts.ignorarImagens) {
       secoes = secoes.map((s) => ({

@@ -1,4 +1,9 @@
+// @vitest-environment node
 // test/marcarTarjas.test.js
+// Roda em ambiente Node (não jsdom): é lógica pura de zip/mammoth, sem DOM.
+// No jsdom, o JSZip rejeita o ArrayBuffer por incompatibilidade de realm
+// (jsdom ArrayBuffer !== Node ArrayBuffer). O código-fonte usa loadAsync(arrayBuffer),
+// que é o correto para o navegador real.
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';

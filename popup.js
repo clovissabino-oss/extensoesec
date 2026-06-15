@@ -52,9 +52,11 @@ function renderPreview(secoes) {
 
 $injetar.addEventListener('click', async () => {
   if (!confirm(`Vai colar ${secoesAtuais.length} bloco(s) no item em foco. Continuar?`)) return;
+  $injetar.disabled = true; // evita injeção duplicada por cliques repetidos
   $status.textContent = 'Injetando...';
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   chrome.tabs.sendMessage(tab.id, { acao: 'INJETAR_SECOES', secoes: secoesAtuais }, (resp) => {
+    $injetar.disabled = false;
     if (chrome.runtime.lastError) { $status.textContent = 'Abra o editor do LDI na aba ativa e tente de novo.'; return; }
     if (!resp?.ok) { $status.textContent = `Falhou: ${resp?.erro || 'veja o console (F12)'}`; return; }
     const nErros = resp.erros?.length || 0;

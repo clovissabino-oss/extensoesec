@@ -24,11 +24,8 @@ function marcarTarjas(documentXml) {
 /** Recebe o .docx (ArrayBuffer), marca as tarjas e devolve novo ArrayBuffer. */
 async function marcarTarjasDocx(arrayBuffer) {
   const Zip = (typeof JSZip !== 'undefined') ? JSZip : (await import('jszip')).default;
-  // Convert ArrayBuffer to a format JSZip can handle
-  const data = typeof window === 'undefined' && Buffer && Buffer.isBuffer(arrayBuffer)
-    ? arrayBuffer
-    : Buffer.from(arrayBuffer);
-  const zip = await Zip.loadAsync(data);
+  // JSZip.loadAsync aceita ArrayBuffer nativamente no browser e no Node.
+  const zip = await Zip.loadAsync(arrayBuffer);
   const xml = await zip.file('word/document.xml').async('string');
   zip.file('word/document.xml', marcarTarjas(xml));
   return zip.generateAsync({ type: 'arraybuffer' });
