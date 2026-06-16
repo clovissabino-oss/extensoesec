@@ -21,16 +21,22 @@
     return { paragrafos, imagens, listas, tabelas };
   }
 
-  function fatiarSecoes(html) {
+  /**
+   * @param {string} html
+   * @param {'titulo'|'subtitulo'} [nivel]  'subtitulo' corta também nos <h2>
+   *   (um bloco por subtítulo); 'titulo' (padrão) corta só nas tarjas (<h1>).
+   */
+  function fatiarSecoes(html, nivel) {
+    const cortaEm = nivel === 'subtitulo' ? new Set(['h1', 'h2']) : new Set(['h1']);
     const doc = new DOMParser().parseFromString(html, 'text/html');
     const secoes = [];
     let atual = null;
     for (const el of Array.from(doc.body.children)) {
-      const ehTarja = el.tagName.toLowerCase() === 'h1';
-      if (ehTarja || !atual) {
+      const corta = cortaEm.has(el.tagName.toLowerCase());
+      if (corta || !atual) {
         atual = { titulo: '', elementos: [] };
         secoes.push(atual);
-        if (ehTarja) atual.titulo = el.textContent.trim();
+        if (corta) atual.titulo = el.textContent.trim();
       }
       atual.elementos.push(el);
     }

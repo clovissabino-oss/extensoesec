@@ -12,11 +12,18 @@ const html =
   '<table><tr><td>x</td></tr></table>';
 
 describe('fatiarSecoes', () => {
-  it('cria uma seção por <h1>', () => {
+  it('cria uma seção por <h1> (padrão: dividir por título)', () => {
     const s = fatiarSecoes(html);
     expect(s).toHaveLength(2);
     expect(s[0].titulo).toBe('Apresentação');
     expect(s[1].titulo).toBe('Noções basilares');
+  });
+
+  it('no modo subtítulo, também corta nos <h2>', () => {
+    const s = fatiarSecoes(html, 'subtitulo');
+    expect(s).toHaveLength(3); // Apresentação | Noções basilares | Conceito
+    expect(s.map((x) => x.titulo)).toEqual(['Apresentação', 'Noções basilares', 'Conceito']);
+    expect(s[2].html).toContain('<ul><li>a</li></ul>'); // conteúdo do subtítulo fica no bloco dele
   });
 
   it('inclui o título e o conteúdo no html da seção', () => {

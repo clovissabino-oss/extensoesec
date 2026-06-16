@@ -26,6 +26,13 @@ describe('marcarTarjas (string)', () => {
       '<w:r><w:t>Texto</w:t></w:r></w:p>';
     expect(marcarTarjas(xml)).not.toContain('<w:pStyle');
   });
+
+  it('marca subtítulo (fonte 16pt = sz 32) como Heading2', () => {
+    const xml =
+      '<w:p><w:pPr><w:jc w:val="both"/></w:pPr>' +
+      '<w:r><w:rPr><w:sz w:val="32"/></w:rPr><w:t>Conceito de Constituição</w:t></w:r></w:p>';
+    expect(marcarTarjas(xml)).toContain('<w:pStyle w:val="Heading2"/>');
+  });
 });
 
 describe('marcarTarjasDocx + mammoth (fixture real)', () => {

@@ -8,6 +8,7 @@ const $preview = document.getElementById('preview');
 const $status = document.getElementById('status');
 const $injetar = document.getElementById('injetar');
 const $ignorar = document.getElementById('ignorarImagens');
+const $dividir = document.getElementById('dividirPor');
 
 $drop.addEventListener('dragover', (e) => e.preventDefault());
 $drop.addEventListener('drop', (e) => {
@@ -16,13 +17,14 @@ $drop.addEventListener('drop', (e) => {
 });
 $file.addEventListener('change', () => { if ($file.files[0]) processar($file.files[0]); });
 $ignorar.addEventListener('change', () => { if ($file.files[0]) processar($file.files[0]); });
+$dividir.addEventListener('change', () => { if ($file.files[0]) processar($file.files[0]); });
 
 async function processar(file) {
   if (!file.name.toLowerCase().endsWith('.docx')) { $status.textContent = 'Selecione um arquivo .docx'; return; }
   $status.textContent = 'Lendo documento...';
   try {
     const buffer = await file.arrayBuffer();
-    secoesAtuais = await Parser.docxParaSecoes(buffer, { ignorarImagens: $ignorar.checked });
+    secoesAtuais = await Parser.docxParaSecoes(buffer, { ignorarImagens: $ignorar.checked, dividirPor: $dividir.value });
     renderPreview(secoesAtuais);
     $status.textContent = `${secoesAtuais.length} bloco(s) pronto(s).`;
     $injetar.disabled = secoesAtuais.length === 0;

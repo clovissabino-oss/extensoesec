@@ -9,18 +9,26 @@
  * da página, declarações `const` de topo colidiriam entre os arquivos.
  */
 (function () {
-  const FILL_TARJA = /<w:shd\b[^>]*w:fill="4231[aA]4"/;
+  const FILL_TARJA = /<w:shd\b[^>]*w:fill="4231[aA]4"/;       // tarja azul (fundo) = título principal
+  const SZ_SUBTITULO = /<w:sz w:val="32"\s*\/>/;             // 16pt = subtítulo do material
 
-  /** Marca o document.xml (string). Pura e testável. */
+  /**
+   * Marca o document.xml (string). Pura e testável.
+   * - Tarja azul (fundo #4231A4) → Heading1 (vira <h1>: título principal/seção).
+   * - Subtítulo (fonte 16pt = sz 32)  → Heading2 (vira <h2>: ex. "Conceito de Constituição").
+   */
   function marcarTarjas(documentXml) {
     return documentXml.replace(/<w:p\b[^>]*>[\s\S]*?<\/w:p>/g, (par) => {
-      const ppr = par.match(/<w:pPr\b[^>]*>[\s\S]*?<\/w:pPr>/);
-      if (!ppr) return par;
-      const bloco = ppr[0];
-      if (!FILL_TARJA.test(bloco)) return par;
-      if (/<w:pStyle\b/.test(bloco)) return par;
-      const novo = bloco.replace(/<w:pPr\b[^>]*>/, (abre) => abre + '<w:pStyle w:val="Heading1"/>');
-      return par.replace(bloco, novo);
+      const m = par.match(/<w:pPr\b[^>]*>[\s\S]*?<\/w:pPr>/);
+      if (!m) return par;
+      const ppr = m[0];
+      if (/<w:pStyle\b/.test(ppr)) return par; // já tem estilo nomeado
+      let estilo = null;
+      if (FILL_TARJA.test(ppr)) estilo = 'Heading1';
+      else if (SZ_SUBTITULO.test(par)) estilo = 'Heading2';
+      if (!estilo) return par;
+      const novo = ppr.replace(/<w:pPr\b[^>]*>/, (abre) => abre + '<w:pStyle w:val="' + estilo + '"/>');
+      return par.replace(ppr, novo);
     });
   }
 

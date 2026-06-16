@@ -33,7 +33,7 @@
   const Parser = {
     /**
      * @param {ArrayBuffer} arrayBuffer  conteúdo bruto do .docx
-     * @param {{ ignorarImagens?: boolean }} [opts]
+     * @param {{ ignorarImagens?: boolean, dividirPor?: 'titulo'|'subtitulo' }} [opts]
      * @returns {Promise<Array<{titulo:string, html:string, resumo:object}>>}
      */
     async docxParaSecoes(arrayBuffer, opts = {}) {
@@ -51,7 +51,7 @@
       // Surface mammoth warnings (estilos não mapeados etc.) para diagnóstico.
       (messages || []).filter((m) => m.type !== 'debug').forEach((m) => console.warn('[mammoth]', m.message));
       // inlineCores: class="cor-XXXXXX" -> style="color:#XXXXXX" (preservado na colagem).
-      let secoes = FatiarSecoes.fatiarSecoes(sanitizarHtml(Cores.inlineCores(html)));
+      let secoes = FatiarSecoes.fatiarSecoes(sanitizarHtml(Cores.inlineCores(html)), opts.dividirPor);
       if (opts.ignorarImagens) {
         secoes = secoes.map((s) => ({
           ...s,

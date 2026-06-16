@@ -16,7 +16,9 @@ Interativo, preservando formatação e imagens. **Cada tarja azul** da aula vira
 3. Clique no ícone do **Injetor LDI** na barra do Chrome.
 4. **Suba o `.docx`** (clique ou arraste). Confira o **preview**: ele lista as
    seções e quantos parágrafos/imagens/listas/tabelas cada uma tem.
-5. (Opcional) Marque **"Ignorar imagens"** se quiser colar só o texto.
+5. Escolha em **"Dividir blocos por"**: **Subtítulo** (um bloco por subtítulo —
+   "Conceito de…", "Sentidos de…") ou **Título/tarja azul** (um bloco por seção).
+6. (Opcional) Marque **"Ignorar imagens"** se quiser colar só o texto.
 6. Clique **Injetar** e confirme.
 7. Confira o conteúdo e clique em **Salvar** no editor.
 
