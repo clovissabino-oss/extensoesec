@@ -91,21 +91,25 @@
     alvo.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
   }
 
+  /** O botão "Adicionar bloco" VISÍVEL (o último — adiciona ao fim do item). */
+  function acharBotaoAdicionar() {
+    const bs = [...document.querySelectorAll('button,[role="button"],a,span,div,li')]
+      .filter((e) => (e.textContent || '').trim().toLowerCase() === TEXTO_BOTAO_BLOCO && e.offsetParent);
+    return bs[bs.length - 1] || null;
+  }
+
   /** Cria um bloco de texto novo (+ Adicionar bloco → Texto) e devolve o editor dele. */
   async function adicionarBlocoTexto() {
     const antes = editores().length;
-    const botao = acharPorTexto(TEXTO_BOTAO_BLOCO, false);
+    const botao = acharBotaoAdicionar();
     if (!botao) throw new Error('Botão "Adicionar bloco" não encontrado.');
-    botao.click();
-    let li;
-    try {
-      li = await esperarPor(acharLiTexto, 3000);
-    } catch (e) {
+    dispararMouse(botao); // sequência completa de mouse (clique simples não abre o menu)
+    const li = await esperarPor(acharLiTexto, 6000).catch(() => {
       throw new Error('Opção "Texto" não apareceu após "Adicionar bloco".');
-    }
+    });
     dispararMouse(li.querySelector('span') || li);
-    await esperarPor(() => (editores().length > antes ? editores()[editores().length - 1] : null), 6000);
-    await espera(200);
+    await esperarPor(() => (editores().length > antes ? editores()[editores().length - 1] : null), 8000);
+    await espera(300);
     return editores()[editores().length - 1];
   }
 
@@ -124,7 +128,14 @@
     for (let i = 0; i < secoes.length; i++) {
       const sec = secoes[i];
       try {
-        const editor = (i === 0) ? editorInicial : await adicionarBlocoTexto();
+        let editor;
+        if (i === 0) {
+          editor = editorInicial;
+        } else {
+          await espera(500); // deixa a colagem anterior assentar antes de criar bloco
+          // uma re-tentativa cobre falhas transitórias de timing após colagens grandes
+          editor = await adicionarBlocoTexto().catch(async () => { await espera(900); return adicionarBlocoTexto(); });
+        }
         simularColagem(editor, sec.html, sec.titulo);
         qtd++;
         console.log(`[Injetor LDI] seção ${i + 1}/${secoes.length} "${sec.titulo || '(sem título)'}" colada ✓`);
