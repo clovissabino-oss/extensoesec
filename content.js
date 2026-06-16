@@ -113,12 +113,28 @@
     return editores()[editores().length - 1];
   }
 
+  /** Clica todos os botões "Salvar" dos blocos (cada bloco salva o seu). */
+  async function salvarTodos() {
+    let salvos = 0;
+    for (let i = 0; i < 80; i++) { // limite de segurança
+      const botao = [...document.querySelectorAll('button')]
+        .find((b) => (b.textContent || '').trim().toLowerCase() === 'salvar' && b.offsetParent);
+      if (!botao) break; // não há mais bloco para salvar
+      botao.click();
+      salvos++;
+      await espera(500); // espera o bloco sair do modo edição
+    }
+    console.log(`[Conversor LDI] ${salvos} bloco(s) salvo(s).`);
+    return salvos;
+  }
+
   /**
-   * Injeta as seções: 1 bloco por tarja azul. A 1ª vai no editor em foco; as
-   * demais em blocos novos. Preserva formatação (títulos, negrito, listas,
-   * tabelas, imagens). Continua mesmo se uma seção falhar. Devolve { qtd, erros }.
+   * Injeta as seções: 1 bloco por título/subtítulo. A 1ª vai no editor em foco;
+   * as demais em blocos novos. Preserva formatação (tarja azul, cores, negrito,
+   * listas, tabelas, imagens). Continua mesmo se uma seção falhar.
+   * Se salvarAuto, clica "Salvar" em todos no fim. Devolve { qtd, erros, salvos }.
    */
-  async function injetarSecoes(secoes) {
+  async function injetarSecoes(secoes, salvarAuto) {
     const editorInicial = acharEditorFocado();
     if (!editorInicial) {
       throw new Error('Editor não encontrado. Clique dentro do bloco de texto do item antes de injetar.');
@@ -138,16 +154,19 @@
         }
         simularColagem(editor, sec.html, sec.titulo);
         qtd++;
-        console.log(`[Injetor LDI] seção ${i + 1}/${secoes.length} "${sec.titulo || '(sem título)'}" colada ✓`);
+        console.log(`[Conversor LDI] seção ${i + 1}/${secoes.length} "${sec.titulo || '(sem título)'}" colada ✓`);
         await espera(250);
       } catch (e) {
-        console.error(`[Injetor LDI] falha na seção ${i + 1}:`, e);
+        console.error(`[Conversor LDI] falha na seção ${i + 1}:`, e);
         erros.push({ secao: i + 1, titulo: sec.titulo, msg: e.message });
       }
     }
-    alert('Injetor LDI: ' + qtd + ' bloco(s) colado(s)' +
-      (erros.length ? ', ' + erros.length + ' com erro (veja o console F12).' : '. Confira e clique em Salvar.'));
-    return { qtd, erros };
+    let salvos = null;
+    if (salvarAuto) { await espera(400); salvos = await salvarTodos(); }
+    alert('Conversor LDI: ' + qtd + ' bloco(s) colado(s)' +
+      (salvos != null ? ', ' + salvos + ' salvo(s)' : '') +
+      (erros.length ? '. ' + erros.length + ' com erro (veja o console F12).' : (salvos != null ? '.' : '. Confira e clique em Salvar.')));
+    return { qtd, erros, salvos };
   }
 
   // Exports para os testes (Node/Vitest).
@@ -159,11 +178,11 @@
   if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
     if (!window.__INJETOR_LDI_CARREGADO__) {
       window.__INJETOR_LDI_CARREGADO__ = true;
-      console.log('[Injetor LDI] Content script inicializado.');
+      console.log('[Conversor LDI] Content script inicializado.');
       chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         if (msg.acao !== 'INJETAR_SECOES') return;
-        injetarSecoes(msg.secoes)
-          .then((r) => sendResponse({ ok: true, qtd: r.qtd, erros: r.erros }))
+        injetarSecoes(msg.secoes, msg.salvarAuto)
+          .then((r) => sendResponse({ ok: true, qtd: r.qtd, erros: r.erros, salvos: r.salvos }))
           .catch((e) => sendResponse({ ok: false, erro: e.message }));
         return true;
       });

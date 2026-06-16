@@ -4,22 +4,26 @@
   <meta charset="UTF-8" />
   <style>
     :root { --roxo: #4231a4; }
-    body { width: 380px; font-family: system-ui, sans-serif; margin: 0; padding: 16px; color: #1a1a2e; }
+    * { box-sizing: border-box; }
+    body { width: 400px; font-family: system-ui, sans-serif; margin: 0; padding: 16px; color: #1a1a2e; }
     h1 { font-size: 15px; margin: 0 0 12px; }
     .drop { border: 2px dashed #cbd5e1; border-radius: 10px; padding: 18px; text-align: center; font-size: 13px; color: #64748b; cursor: pointer; }
     .drop:hover { border-color: var(--roxo); color: var(--roxo); }
-    label.opt { display: flex; gap: 6px; align-items: center; font-size: 12px; color: #334155; margin-top: 10px; }
-    button { width: 100%; margin-top: 10px; padding: 10px; border: 0; border-radius: 8px; background: var(--roxo); color: #fff; font-weight: 600; cursor: pointer; }
-    button:disabled { opacity: .5; cursor: not-allowed; }
-    #preview { margin-top: 12px; max-height: 240px; overflow: auto; font-size: 12px; border-top: 1px solid #eee; padding-top: 8px; }
-    .bloco { padding: 6px 8px; margin: 4px 0; border-radius: 6px; background: #f3f1fb; }
-    .tag { display: inline-block; font-size: 10px; font-weight: 700; color: var(--roxo); text-transform: uppercase; margin-right: 6px; }
-    .meta { color: #64748b; }
+    .opt { display: flex; gap: 6px; align-items: center; font-size: 12px; color: #334155; margin-top: 10px; }
+    .opt select { margin-left: auto; font-size: 12px; padding: 2px 4px; }
+    button#injetar { width: 100%; margin-top: 12px; padding: 10px; border: 0; border-radius: 8px; background: var(--roxo); color: #fff; font-weight: 600; cursor: pointer; }
+    button#injetar:disabled { opacity: .5; cursor: not-allowed; }
+    #preview { margin-top: 12px; max-height: 230px; overflow-y: auto; font-size: 12px; border-top: 1px solid #eee; padding-top: 8px; }
+    .bloco { display: block; padding: 8px 10px; margin: 0 0 6px; border-radius: 8px; background: #f3f1fb; line-height: 1.4; overflow-wrap: anywhere; }
+    .bloco:last-child { margin-bottom: 0; }
+    .bloco .titulo { display: block; font-weight: 600; color: #1a1a2e; }
+    .bloco .tag { display: inline-block; font-size: 10px; font-weight: 700; color: var(--roxo); text-transform: uppercase; margin-right: 6px; }
+    .bloco .meta { display: block; margin-top: 2px; color: #64748b; }
     #status { font-size: 12px; color: #64748b; margin-top: 8px; min-height: 16px; }
   </style>
 </head>
 <body>
-  <h1>Injetor LDI — importar .docx</h1>
+  <h1>Conversor LDI — importar .docx</h1>
   <label class="drop" id="drop">
     Clique ou arraste o arquivo .docx aqui
     <input id="file" type="file" accept=".docx" hidden />
@@ -30,6 +34,7 @@
       <option value="titulo">Título / tarja azul</option>
     </select>
   </label>
+  <label class="opt"><input type="checkbox" id="salvarAuto" checked /> Salvar os blocos automaticamente ao final</label>
   <label class="opt"><input type="checkbox" id="ignorarImagens" /> Ignorar imagens (colar só o texto)</label>
   <div id="status"></div>
   <div id="preview"></div>

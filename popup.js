@@ -9,6 +9,7 @@ const $status = document.getElementById('status');
 const $injetar = document.getElementById('injetar');
 const $ignorar = document.getElementById('ignorarImagens');
 const $dividir = document.getElementById('dividirPor');
+const $salvarAuto = document.getElementById('salvarAuto');
 
 $drop.addEventListener('dragover', (e) => e.preventDefault());
 $drop.addEventListener('drop', (e) => {
@@ -38,17 +39,30 @@ async function processar(file) {
 function renderPreview(secoes) {
   $preview.innerHTML = '';
   secoes.forEach((s, i) => {
-    const div = document.createElement('div');
-    div.className = 'bloco';
     const r = s.resumo;
     const partes = [];
     if (r.paragrafos) partes.push(`${r.paragrafos} parágrafos`);
     if (r.imagens) partes.push(`${r.imagens} imagens`);
     if (r.listas) partes.push(`${r.listas} listas`);
     if (r.tabelas) partes.push(`${r.tabelas} tabelas`);
-    div.innerHTML =
-      `<span class="tag">Bloco ${i + 1}</span>${s.titulo || '(sem título)'}` +
-      `<br><span class="meta">${partes.join(' · ') || 'vazio'}</span>`;
+
+    const div = document.createElement('div');
+    div.className = 'bloco';
+
+    const titulo = document.createElement('span');
+    titulo.className = 'titulo';
+    const tag = document.createElement('span');
+    tag.className = 'tag';
+    tag.textContent = `Bloco ${i + 1}`;
+    titulo.appendChild(tag);
+    titulo.appendChild(document.createTextNode(s.titulo || '(sem título)'));
+
+    const meta = document.createElement('span');
+    meta.className = 'meta';
+    meta.textContent = partes.join(' · ') || 'vazio';
+
+    div.appendChild(titulo);
+    div.appendChild(meta);
     $preview.appendChild(div);
   });
 }
@@ -61,12 +75,13 @@ $injetar.addEventListener('click', async () => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     // Garante que o content script está presente NESTA aba (não depende de F5/timing).
     await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['content.js'] });
-    chrome.tabs.sendMessage(tab.id, { acao: 'INJETAR_SECOES', secoes: secoesAtuais }, (resp) => {
+    chrome.tabs.sendMessage(tab.id, { acao: 'INJETAR_SECOES', secoes: secoesAtuais, salvarAuto: $salvarAuto.checked }, (resp) => {
       $injetar.disabled = false;
       if (chrome.runtime.lastError) { $status.textContent = 'Falha ao falar com a página: ' + chrome.runtime.lastError.message; return; }
       if (!resp?.ok) { $status.textContent = `Falhou: ${resp?.erro || 'veja o console (F12)'}`; return; }
       const nErros = resp.erros?.length || 0;
-      $status.textContent = `${resp.qtd} bloco(s) colado(s)` + (nErros ? `, ${nErros} com erro (F12).` : '. Confira e clique em Salvar.');
+      const fim = resp.salvos != null ? ` e ${resp.salvos} salvo(s).` : '. Confira e clique em Salvar.';
+      $status.textContent = `${resp.qtd} bloco(s) colado(s)` + (nErros ? `, ${nErros} com erro (F12).` : fim);
     });
   } catch (e) {
     $injetar.disabled = false;

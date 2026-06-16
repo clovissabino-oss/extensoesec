@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "Injetor LDI — Estratégia",
-  "version": "0.7.0",
+  "name": "Conversor LDI — Estratégia",
+  "version": "0.8.0",
   "description": "Importa um .docx de aula para o editor de LDI preservando formatação, cores e imagens.",
   "permissions": ["activeTab", "scripting", "storage"],
   "host_permissions": [
@@ -10,7 +10,7 @@
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Injetor LDI"
+    "default_title": "Conversor LDI"
   },
   "content_scripts": [
     {
