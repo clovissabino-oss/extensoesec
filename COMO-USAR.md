@@ -9,7 +9,8 @@ os demais são criados automaticamente).
 1. Baixe a pasta (no GitHub: **Code → Download ZIP**) e descompacte.
 2. Abra `chrome://extensions`.
 3. Ative o **Modo desenvolvedor** (canto superior direito).
-4. Clique em **Carregar sem compactação** e selecione a pasta `injetor-ldi`.
+4. Clique em **Carregar sem compactação** e selecione a **pasta da extensão**
+   (a que contém o `manifest.json`).
 
 ## Usar
 1. Abra o **item** da aula no editor do LDI (admin.estrategia.com).
