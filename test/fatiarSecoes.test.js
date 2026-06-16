@@ -1,6 +1,6 @@
 // test/fatiarSecoes.test.js
 import { describe, it, expect } from 'vitest';
-import { fatiarSecoes } from '../fatiarSecoes.js';
+import { fatiarSecoes, estilizarTitulos } from '../fatiarSecoes.js';
 
 const html =
   '<h1>Apresentação</h1>' +
@@ -44,5 +44,25 @@ describe('fatiarSecoes', () => {
     expect(s).toHaveLength(2);
     expect(s[0].titulo).toBe('');
     expect(s[0].html).toContain('<p>intro</p>');
+  });
+});
+
+describe('estilizarTitulos', () => {
+  it('transforma <h1> (tarja) em tabela de fundo azul com texto branco', () => {
+    const out = estilizarTitulos('<h1>Apresentação</h1>');
+    expect(out).toContain('class="full-width-table"');
+    expect(out).toContain('background-color:#4231A4');
+    expect(out).toContain('color:#FFFFFF">Apresentação');
+  });
+
+  it('transforma <h2> (subtítulo) em caixa branca com borda e texto azul', () => {
+    const out = estilizarTitulos('<h2>Conceito</h2>');
+    expect(out).toContain('background-color:#FFFFFF');
+    expect(out).toContain('border:1px solid #4231A4');
+    expect(out).toContain('color:#4231A4">Conceito');
+  });
+
+  it('mantém o conteúdo que não é título', () => {
+    expect(estilizarTitulos('<p>texto</p>')).toBe('<p>texto</p>');
   });
 });

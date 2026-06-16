@@ -52,6 +52,8 @@
       (messages || []).filter((m) => m.type !== 'debug').forEach((m) => console.warn('[mammoth]', m.message));
       // inlineCores: class="cor-XXXXXX" -> style="color:#XXXXXX" (preservado na colagem).
       let secoes = FatiarSecoes.fatiarSecoes(sanitizarHtml(Cores.inlineCores(html)), opts.dividirPor);
+      // Reproduz a tarja azul (fundo) e a caixa do subtítulo (tabela de 1 célula).
+      secoes = secoes.map((s) => ({ ...s, html: FatiarSecoes.estilizarTitulos(s.html) }));
       if (opts.ignorarImagens) {
         secoes = secoes.map((s) => ({
           ...s,

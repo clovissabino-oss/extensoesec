@@ -47,7 +47,33 @@
     }));
   }
 
-  const api = { fatiarSecoes };
+  /* ------------------------------------------------------------------------
+   * estilizarTitulos: reproduz a TARJA AZUL e a CAIXA DO SUBTÍTULO do LDI.
+   * No editor, faixa/subtítulo são TABELAS de uma célula (o editor preserva
+   * fundo/borda em <td>, não em parágrafo — descoberto ao vivo):
+   *   - <h1> (tarja) → célula com FUNDO azul #4231A4 + texto branco.
+   *   - <h2> (subtítulo) → célula branca com BORDA azul + texto azul.
+   * ---------------------------------------------------------------------- */
+  function semTags(s) { return s.replace(/<[^>]+>/g, '').trim(); }
+
+  function celulaTitulo(texto, bg, corTexto) {
+    return '<table fullwidth="true" class="full-width-table"><tbody><tr>' +
+      '<td colspan="1" rowspan="1" backgroundcolor="' + bg + '" bordercolor="#4231A4" ' +
+      'style="background-color:' + bg + ';border:1px solid #4231A4;">' +
+      '<h2 style="text-align: justify"><span style="color:' + corTexto + '">' + texto + '</span></h2>' +
+      '</td></tr></tbody></table>';
+  }
+
+  function estilizarTitulos(html) {
+    // Passada ÚNICA (h1|h2): o String.replace não re-escaneia o <h2> que criamos
+    // dentro das tabelas, evitando dupla transformação.
+    return html.replace(/<(h1|h2)\b[^>]*>([\s\S]*?)<\/\1>/gi, (m, tag, inner) =>
+      tag.toLowerCase() === 'h1'
+        ? celulaTitulo(semTags(inner), '#4231A4', '#FFFFFF')   // tarja: fundo azul, texto branco
+        : celulaTitulo(semTags(inner), '#FFFFFF', '#4231A4'));  // subtítulo: caixa branca, borda+texto azul
+  }
+
+  const api = { fatiarSecoes, estilizarTitulos };
   if (typeof window !== 'undefined') { window.FatiarSecoes = api; }
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; }
 })();
