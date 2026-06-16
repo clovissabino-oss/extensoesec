@@ -1,16 +1,28 @@
 {
   "manifest_version": 3,
   "name": "Conversor LDI — Estratégia",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Importa um .docx de aula para o editor de LDI preservando formatação, cores e imagens.",
   "permissions": ["activeTab", "scripting", "storage"],
   "host_permissions": [
     "https://*.estrategia.com/*",
     "https://*.estrategiaconcursos.com.br/*"
   ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Conversor LDI"
+    "default_title": "Conversor LDI",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
   },
   "content_scripts": [
     {
