@@ -45,16 +45,22 @@
       const styleMap = [
         "p[style-name='heading 1'] => h1:fresh",
         "p[style-name='heading 2'] => h2:fresh",
-        "p[style-name='heading 3'] => h3:fresh"
+        "p[style-name='heading 3'] => h3:fresh",
+        "p[style-name='Caixa'] => p.caixa:fresh" // parágrafos com borda (caixas) → agrupados depois
       ].concat(Cores.styleMapDeCores(coresVisiveis)); // preserva as cores de fonte
       const { value: html, messages } = await mammoth.convertToHtml({ arrayBuffer: marcado }, { styleMap });
       // Surface mammoth warnings (estilos não mapeados etc.) para diagnóstico.
       (messages || []).filter((m) => m.type !== 'debug').forEach((m) => console.warn('[mammoth]', m.message));
-      // inlineCores: cores de fonte; aplicarTamanhos: tamanho de exibição das imagens
-      // (corrige imagens/corujas gigantes); estilizarTabelas: tabelas full-width;
-      // aplicarCorTabela: preserva a cor do cabeçalho das tabelas (#5).
-      const comEstilo = FatiarSecoes.estilizarTabelas(Imagens.aplicarTamanhos(Cores.inlineCores(html), tamanhos));
-      const corpo = Tabelas.aplicarCorTabela(comEstilo, tabelasCores);
+      // inlineCores: cores de fonte; aplicarTamanhos: marca o tamanho de exibição;
+      // redimensionarImagens: redesenha os bytes nesse tamanho (o editor ignora
+      // width/height ao colar, então corrige de fato as imagens/corujas gigantes).
+      let base = Imagens.aplicarTamanhos(Cores.inlineCores(html), tamanhos);
+      base = await Imagens.redimensionarImagens(base);
+      // estilizarTabelas: tabelas full-width; aplicarCorTabela: cor do cabeçalho (#5)
+      // — ANTES de agruparCaixas, para o índice das tabelas casar com o do .docx.
+      const comCor = Tabelas.aplicarCorTabela(FatiarSecoes.estilizarTabelas(base), tabelasCores);
+      // agruparCaixas: parágrafos com borda viram tabela de 1 célula com borda.
+      const corpo = FatiarSecoes.agruparCaixas(comCor);
       // Tira a <ol> de notas do fim ANTES de fatiar/sanitizar (a sanitização
       // desembrulha as âncoras e apagaria as chamadas das notas).
       const { html: corpoSemNotas, notas } = Notas.extrairNotas(corpo);

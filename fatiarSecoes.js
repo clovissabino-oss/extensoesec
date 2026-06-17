@@ -83,7 +83,46 @@
         : celulaTitulo(semTags(inner), '#FFFFFF', '#4231A4'));  // subtítulo: caixa branca, borda+texto azul
   }
 
-  const api = { fatiarSecoes, estilizarTitulos, estilizarTabelas };
+  /**
+   * agruparCaixas: junta parágrafos consecutivos <p class="caixa"> (parágrafos
+   * com borda, marcados em marcarCaixas) numa TABELA de 1 célula com borda — o
+   * editor do LDI preserva borda de <td>, não de parágrafo. Reproduz as "caixas"
+   * de destaque do material (ex.: definições em caixa com contorno).
+   */
+  function agruparCaixas(html) {
+    if (typeof DOMParser === 'undefined') return html;
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    // Início de cada sequência = <p.caixa> sem um <p.caixa> imediatamente antes.
+    const inicios = [...doc.querySelectorAll('p.caixa')].filter((p) => {
+      const ant = p.previousElementSibling;
+      return !(ant && ant.tagName === 'P' && ant.classList.contains('caixa'));
+    });
+    inicios.forEach((p0) => {
+      const grupo = [];
+      let cur = p0;
+      while (cur && cur.tagName === 'P' && cur.classList.contains('caixa')) {
+        grupo.push(cur);
+        cur = cur.nextElementSibling;
+      }
+      const tabela = doc.createElement('table');
+      tabela.className = 'full-width-table';
+      const tbody = doc.createElement('tbody');
+      const tr = doc.createElement('tr');
+      const td = doc.createElement('td');
+      td.setAttribute('style', 'border:1px solid #4231A4;padding:8px;');
+      td.setAttribute('bordercolor', '#4231A4');
+      p0.parentNode.insertBefore(tabela, p0);
+      grupo.forEach((p) => {
+        p.classList.remove('caixa');
+        if (!p.getAttribute('class')) p.removeAttribute('class');
+        td.appendChild(p);
+      });
+      tr.appendChild(td); tbody.appendChild(tr); tabela.appendChild(tbody);
+    });
+    return doc.body.innerHTML;
+  }
+
+  const api = { fatiarSecoes, estilizarTitulos, estilizarTabelas, agruparCaixas };
   if (typeof window !== 'undefined') { window.FatiarSecoes = api; }
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; }
 })();

@@ -1,6 +1,6 @@
 // test/fatiarSecoes.test.js
 import { describe, it, expect } from 'vitest';
-import { fatiarSecoes, estilizarTitulos, estilizarTabelas } from '../fatiarSecoes.js';
+import { fatiarSecoes, estilizarTitulos, estilizarTabelas, agruparCaixas } from '../fatiarSecoes.js';
 
 const html =
   '<h1>Apresentação</h1>' +
@@ -64,6 +64,28 @@ describe('estilizarTitulos', () => {
 
   it('mantém o conteúdo que não é título', () => {
     expect(estilizarTitulos('<p>texto</p>')).toBe('<p>texto</p>');
+  });
+});
+
+describe('agruparCaixas', () => {
+  it('agrupa parágrafos .caixa consecutivos numa tabela de 1 célula com borda', () => {
+    const out = agruparCaixas('<p class="caixa">a</p><p class="caixa">b</p><p>fora</p>');
+    expect(out).toContain('class="full-width-table"');
+    expect(out).toContain('border:1px solid #4231A4');
+    expect(out).toContain('<p>a</p>'); // perde a classe, vira parágrafo normal dentro da célula
+    expect(out).toContain('<p>b</p>');
+    expect(out).toContain('<p>fora</p>'); // parágrafo fora da caixa permanece
+    expect(out.match(/<table/g)).toHaveLength(1); // a+b numa única caixa
+    expect(out).not.toContain('class="caixa"');
+  });
+
+  it('cria caixas separadas quando há conteúdo entre elas', () => {
+    const out = agruparCaixas('<p class="caixa">a</p><p>meio</p><p class="caixa">b</p>');
+    expect(out.match(/<table/g)).toHaveLength(2);
+  });
+
+  it('mantém o html quando não há caixas', () => {
+    expect(agruparCaixas('<p>oi</p>')).toBe('<p>oi</p>');
   });
 });
 

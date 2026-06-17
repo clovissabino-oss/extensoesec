@@ -8,7 +8,7 @@ import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import mammoth from 'mammoth';
-import { marcarTarjas, marcarTarjasDocx, removerSumario } from '../marcarTarjas.js';
+import { marcarTarjas, marcarTarjasDocx, removerSumario, marcarCaixas } from '../marcarTarjas.js';
 
 describe('marcarTarjas (string)', () => {
   it('injeta pStyle Heading1 num parágrafo com fundo 4231A4', () => {
@@ -35,6 +35,28 @@ describe('marcarTarjas (string)', () => {
     expect(out).not.toContain('fldChar');
     expect(out).not.toContain('instrText');
     expect(out).toContain('conteúdo real');
+  });
+
+  it('marcarCaixas: parágrafo com pBdr recebe pStyle Caixa (sem tocar em tarja)', () => {
+    const caixa = '<w:p><w:pPr><w:pStyle w:val="PargrafodaLista"/><w:pBdr><w:top/></w:pBdr></w:pPr><w:r><w:t>def</w:t></w:r></w:p>';
+    const out = marcarCaixas(caixa);
+    expect(out).toContain('<w:pStyle w:val="Caixa"/>');
+    expect(out).not.toContain('PargrafodaLista');
+  });
+
+  it('marcarCaixas: NÃO mexe em parágrafo sem borda nem em tarja (Heading1)', () => {
+    expect(marcarCaixas('<w:p><w:pPr/><w:r><w:t>x</w:t></w:r></w:p>')).not.toContain('Caixa');
+    const tarja = '<w:p><w:pPr><w:pStyle w:val="Heading1"/><w:pBdr/></w:pPr><w:r><w:t>T</w:t></w:r></w:p>';
+    expect(marcarCaixas(tarja)).toContain('Heading1');
+    expect(marcarCaixas(tarja)).not.toContain('Caixa');
+  });
+
+  it('marcarCaixas: NÃO converte título de estilo nomeado com borda (ex.: Ttulo2)', () => {
+    // Subtítulo da "Lei": pStyle Ttulo2 (nome "heading 2") COM borda — não pode virar caixa.
+    const subtitulo = '<w:p><w:pPr><w:pStyle w:val="Ttulo2"/><w:pBdr><w:top/></w:pBdr></w:pPr><w:r><w:t>Seção</w:t></w:r></w:p>';
+    const out = marcarCaixas(subtitulo, ['Ttulo2']);
+    expect(out).toContain('Ttulo2');
+    expect(out).not.toContain('Caixa');
   });
 
   it('marca subtítulo (fonte 16pt = sz 32) como Heading2', () => {

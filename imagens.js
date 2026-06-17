@@ -50,7 +50,55 @@
     });
   }
 
-  const api = { mapaTamanhos, aplicarTamanhos };
+  /**
+   * Redimensiona os BYTES de cada imagem para o tamanho de exibição.
+   *
+   * Motivo: o editor do LDI DESCARTA width/height ao colar e usa a resolução
+   * nativa do PNG (enorme — corujas/figuras gigantes). Aqui redesenhamos cada
+   * <img> num <canvas> no tamanho de exibição (lido de width/height), de modo
+   * que o tamanho "nativo" passe a ser o correto — e o editor o respeite.
+   * Só roda no navegador (precisa de canvas); no Node devolve o html intacto.
+   * @param {string} html
+   * @returns {Promise<string>}
+   */
+  async function redimensionarImagens(html) {
+    if (typeof document === 'undefined' || !document.createElement) return html;
+    try {
+      const teste = document.createElement('canvas');
+      if (!teste.getContext || !teste.getContext('2d')) return html; // canvas indisponível
+    } catch (e) { return html; } // jsdom sem o pacote canvas lança aqui
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const imgs = [...doc.querySelectorAll('img[width][height]')];
+    await Promise.all(imgs.map((img) => redimensionarUma(img)));
+    return doc.body.innerHTML;
+  }
+
+  /** Redesenha uma imagem (data URL) no tamanho de exibição. Falha → mantém. */
+  function redimensionarUma(img) {
+    return new Promise((resolve) => {
+      const w = parseInt(img.getAttribute('width'), 10);
+      const h = parseInt(img.getAttribute('height'), 10);
+      const src = img.getAttribute('src') || '';
+      if (!w || !h || !/^data:image\//i.test(src)) return resolve();
+      const im = new Image();
+      im.onload = () => {
+        try {
+          if (im.naturalWidth > w || im.naturalHeight > h) { // só REDUZ (nunca amplia)
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(im, 0, 0, w, h);
+            const tipo = /^data:image\/png/i.test(src) ? 'image/png' : 'image/jpeg';
+            img.setAttribute('src', canvas.toDataURL(tipo, 0.92));
+          }
+        } catch (e) { /* mantém o original */ }
+        resolve();
+      };
+      im.onerror = () => resolve();
+      im.src = src;
+    });
+  }
+
+  const api = { mapaTamanhos, aplicarTamanhos, redimensionarImagens };
   if (typeof window !== 'undefined') { window.Imagens = api; }
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; }
 })();

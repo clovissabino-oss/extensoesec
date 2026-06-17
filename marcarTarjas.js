@@ -53,6 +53,43 @@
   }
 
   /**
+   * Marca os parágrafos com BORDA (caixas) com o estilo nomeado "Caixa" (já
+   * definido no styles.xml com w:name="Caixa"). O mammoth descarta a borda de
+   * parágrafo (<w:pBdr>), então usamos o estilo como gancho: o parser mapeia
+   * "Caixa" → <p class="caixa"> e depois agrupa as caixas numa tabela com borda
+   * (o editor preserva borda de <td>, não de parágrafo). Não toca em tarja/subtítulo.
+   */
+  function marcarCaixas(documentXml, estilosTitulo) {
+    const titulos = new Set(estilosTitulo || []);
+    return documentXml.replace(/<w:p\b[^>]*>[\s\S]*?<\/w:p>/g, (par) => {
+      const m = par.match(/<w:pPr\b[^>]*>[\s\S]*?<\/w:pPr>/);
+      if (!m) return par;
+      const ppr = m[0];
+      if (!/<w:pBdr>/.test(ppr)) return par;                 // só parágrafos com borda
+      // NÃO mexe em títulos (eles também podem ter borda): estilo Heading\d, estilo
+      // nomeado de título (heading/Título — resolvido pelo styles.xml) ou tarja azul.
+      const st = (ppr.match(/<w:pStyle w:val="([^"]+)"/) || [])[1];
+      if (st && (/^Heading\d$/i.test(st) || titulos.has(st))) return par;
+      if (/<w:shd\b[^>]*w:fill="4231[aA]4"/.test(ppr)) return par; // tarja
+      const novo = /<w:pStyle\b/.test(ppr)
+        ? ppr.replace(/<w:pStyle w:val="[^"]*"\s*\/>/, '<w:pStyle w:val="Caixa"/>')
+        : ppr.replace(/<w:pPr\b[^>]*>/, (abre) => abre + '<w:pStyle w:val="Caixa"/>');
+      return par.replace(ppr, novo);
+    });
+  }
+
+  /** IDs dos estilos de parágrafo cujo NOME é heading/título (styles.xml). */
+  function estilosDeTitulo(stylesXml) {
+    const ids = [];
+    (stylesXml.match(/<w:style [^>]*w:type="paragraph"[^>]*>[\s\S]*?<\/w:style>/g) || []).forEach((s) => {
+      const id = (s.match(/w:styleId="([^"]+)"/) || [])[1];
+      const nome = (s.match(/<w:name w:val="([^"]+)"/) || [])[1] || '';
+      if (id && /heading\s*\d|t[íi]tulo\s*\d/i.test(nome)) ids.push(id);
+    });
+    return ids;
+  }
+
+  /**
    * Recebe o .docx (ArrayBuffer), marca as tarjas (banners → Heading1) E injeta
    * os estilos de cor de fonte (ver cores.js). Devolve { arrayBuffer, cores }.
    */
@@ -70,6 +107,7 @@
     const tabelasCores = TabMod.extrairCoresHeader(doc); // cor do cabeçalho das tabelas (#5)
     doc = removerSumario(doc); // tira o Sumário/índice
     doc = marcarTarjas(doc); // tarjas azuis viram Heading1
+    doc = marcarCaixas(doc, estilosDeTitulo(styles)); // parágrafos com borda viram "Caixa" (exceto títulos)
     const cores = CoresMod.coresDoDocumento(doc);
     const comCor = CoresMod.injetarEstilosCor(doc, styles, cores);
 
@@ -79,7 +117,7 @@
     return { arrayBuffer: out, cores, tamanhos, tabelasCores };
   }
 
-  const api = { marcarTarjas, marcarTarjasDocx, removerSumario };
+  const api = { marcarTarjas, marcarTarjasDocx, removerSumario, marcarCaixas };
   if (typeof window !== 'undefined') { window.MarcarTarjas = api; }
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; }
 })();
