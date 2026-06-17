@@ -23,11 +23,12 @@
 
   /**
    * @param {string} html
-   * @param {'titulo'|'subtitulo'} [nivel]  'subtitulo' corta também nos <h2>
-   *   (um bloco por subtítulo); 'titulo' (padrão) corta só nas tarjas (<h1>).
+   * @param {'titulo'|'subtitulo'} [nivel]  'subtitulo' corta em QUALQUER título
+   *   (h1/h2/h3 — um bloco por seção/subtítulo, mesmo que o professor use h3);
+   *   'titulo' (padrão) corta só nas seções principais (h1).
    */
   function fatiarSecoes(html, nivel) {
-    const cortaEm = nivel === 'subtitulo' ? new Set(['h1', 'h2']) : new Set(['h1']);
+    const cortaEm = nivel === 'subtitulo' ? new Set(['h1', 'h2', 'h3']) : new Set(['h1']);
     const doc = new DOMParser().parseFromString(html, 'text/html');
     const secoes = [];
     let atual = null;
@@ -64,6 +65,15 @@
       '</td></tr></tbody></table>';
   }
 
+  /**
+   * Marca as tabelas de CONTEÚDO como full-width (mesma classe do LDI), para
+   * que ocupem a largura do bloco. Não mexe nas tabelas que já têm classe
+   * (ex.: as tarjas/subtítulos criados por estilizarTitulos).
+   */
+  function estilizarTabelas(html) {
+    return html.replace(/<table\b(?![^>]*\bclass=)([^>]*)>/gi, '<table class="full-width-table"$1>');
+  }
+
   function estilizarTitulos(html) {
     // Passada ÚNICA (h1|h2): o String.replace não re-escaneia o <h2> que criamos
     // dentro das tabelas, evitando dupla transformação.
@@ -73,7 +83,7 @@
         : celulaTitulo(semTags(inner), '#FFFFFF', '#4231A4'));  // subtítulo: caixa branca, borda+texto azul
   }
 
-  const api = { fatiarSecoes, estilizarTitulos };
+  const api = { fatiarSecoes, estilizarTitulos, estilizarTabelas };
   if (typeof window !== 'undefined') { window.FatiarSecoes = api; }
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; }
 })();

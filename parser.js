@@ -51,7 +51,9 @@
       // Surface mammoth warnings (estilos não mapeados etc.) para diagnóstico.
       (messages || []).filter((m) => m.type !== 'debug').forEach((m) => console.warn('[mammoth]', m.message));
       // inlineCores: class="cor-XXXXXX" -> style="color:#XXXXXX" (preservado na colagem).
-      let secoes = FatiarSecoes.fatiarSecoes(sanitizarHtml(Cores.inlineCores(html)), opts.dividirPor);
+      // estilizarTabelas: tabelas de conteúdo viram full-width.
+      const corpo = FatiarSecoes.estilizarTabelas(Cores.inlineCores(html));
+      let secoes = FatiarSecoes.fatiarSecoes(sanitizarHtml(corpo), opts.dividirPor);
       // Reproduz a tarja azul (fundo) e a caixa do subtítulo (tabela de 1 célula).
       secoes = secoes.map((s) => ({ ...s, html: FatiarSecoes.estilizarTitulos(s.html) }));
       if (opts.ignorarImagens) {

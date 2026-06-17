@@ -1,6 +1,6 @@
 // test/fatiarSecoes.test.js
 import { describe, it, expect } from 'vitest';
-import { fatiarSecoes, estilizarTitulos } from '../fatiarSecoes.js';
+import { fatiarSecoes, estilizarTitulos, estilizarTabelas } from '../fatiarSecoes.js';
 
 const html =
   '<h1>Apresentação</h1>' +
@@ -64,5 +64,16 @@ describe('estilizarTitulos', () => {
 
   it('mantém o conteúdo que não é título', () => {
     expect(estilizarTitulos('<p>texto</p>')).toBe('<p>texto</p>');
+  });
+});
+
+describe('estilizarTabelas', () => {
+  it('marca tabela de conteúdo como full-width', () => {
+    expect(estilizarTabelas('<table><tr><td>x</td></tr></table>'))
+      .toBe('<table class="full-width-table"><tr><td>x</td></tr></table>');
+  });
+  it('não duplica classe em tabela que já tem class', () => {
+    const t = '<table class="full-width-table"><tr><td>x</td></tr></table>';
+    expect(estilizarTabelas(t)).toBe(t);
   });
 });
