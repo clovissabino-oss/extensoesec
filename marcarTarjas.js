@@ -39,11 +39,13 @@
   async function marcarTarjasDocx(arrayBuffer) {
     const Zip = (typeof JSZip !== 'undefined') ? JSZip : (await import('jszip')).default;
     const CoresMod = (typeof Cores !== 'undefined') ? Cores : require('./cores.js');
+    const ImgMod = (typeof Imagens !== 'undefined') ? Imagens : require('./imagens.js');
     // JSZip.loadAsync aceita ArrayBuffer nativamente no browser e no Node.
     const zip = await Zip.loadAsync(arrayBuffer);
     let doc = await zip.file('word/document.xml').async('string');
     let styles = await zip.file('word/styles.xml').async('string');
 
+    const tamanhos = await ImgMod.mapaTamanhos(zip); // tamanho de exibição das imagens
     doc = marcarTarjas(doc); // tarjas azuis viram Heading1
     const cores = CoresMod.coresDoDocumento(doc);
     const comCor = CoresMod.injetarEstilosCor(doc, styles, cores);
@@ -51,7 +53,7 @@
     zip.file('word/document.xml', comCor.doc);
     zip.file('word/styles.xml', comCor.styles);
     const out = await zip.generateAsync({ type: 'arraybuffer' });
-    return { arrayBuffer: out, cores };
+    return { arrayBuffer: out, cores, tamanhos };
   }
 
   const api = { marcarTarjas, marcarTarjasDocx };

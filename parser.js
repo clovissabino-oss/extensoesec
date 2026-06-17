@@ -37,7 +37,7 @@
      * @returns {Promise<Array<{titulo:string, html:string, resumo:object}>>}
      */
     async docxParaSecoes(arrayBuffer, opts = {}) {
-      const { arrayBuffer: marcado, cores } = await MarcarTarjas.marcarTarjasDocx(arrayBuffer);
+      const { arrayBuffer: marcado, cores, tamanhos } = await MarcarTarjas.marcarTarjasDocx(arrayBuffer);
       // Exclui o branco (#FFFFFF): só faz sentido sobre a faixa azul (que o editor
       // não aceita colar com fundo), senão vira texto branco invisível. Assim o
       // título da tarja fica na cor padrão (visível). A faixa azul é tema da V2.
@@ -50,9 +50,9 @@
       const { value: html, messages } = await mammoth.convertToHtml({ arrayBuffer: marcado }, { styleMap });
       // Surface mammoth warnings (estilos não mapeados etc.) para diagnóstico.
       (messages || []).filter((m) => m.type !== 'debug').forEach((m) => console.warn('[mammoth]', m.message));
-      // inlineCores: class="cor-XXXXXX" -> style="color:#XXXXXX" (preservado na colagem).
-      // estilizarTabelas: tabelas de conteúdo viram full-width.
-      const corpo = FatiarSecoes.estilizarTabelas(Cores.inlineCores(html));
+      // inlineCores: cores de fonte; aplicarTamanhos: tamanho de exibição das imagens
+      // (corrige imagens/corujas gigantes); estilizarTabelas: tabelas full-width.
+      const corpo = FatiarSecoes.estilizarTabelas(Imagens.aplicarTamanhos(Cores.inlineCores(html), tamanhos));
       let secoes = FatiarSecoes.fatiarSecoes(sanitizarHtml(corpo), opts.dividirPor);
       // Reproduz a tarja azul (fundo) e a caixa do subtítulo (tabela de 1 célula).
       secoes = secoes.map((s) => ({ ...s, html: FatiarSecoes.estilizarTitulos(s.html) }));
