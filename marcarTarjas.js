@@ -11,6 +11,26 @@
 (function () {
   const FILL_TARJA = /<w:shd\b[^>]*w:fill="4231[aA]4"/;       // tarja azul (fundo) = título principal
   const SZ_SUBTITULO = /<w:sz w:val="32"\s*\/>/;             // 16pt = subtítulo do material
+  const ESTILO_SUMARIO = /sum[aá]?rio|^toc\d?$|tableofcontents|cabealhodosumrio/i; // Sumário/índice
+
+  /**
+   * Remove os parágrafos do SUMÁRIO/índice (estilos toc/Sumário). Eles não são
+   * conteúdo da aula e, se entrarem, viram blocos indevidos (#7).
+   */
+  function removerSumario(documentXml) {
+    // 1) neutraliza a maquinaria de CAMPO do Word (o Sumário é um campo; remover
+    //    só os parágrafos deixaria o campo quebrado e o mammoth quebra ao lê-lo).
+    let doc = documentXml
+      .replace(/<w:fldChar\b[^>]*\/>/g, '')
+      .replace(/<w:fldChar\b[^>]*>[\s\S]*?<\/w:fldChar>/g, '')
+      .replace(/<w:instrText\b[^>]*>[\s\S]*?<\/w:instrText>/g, '')
+      .replace(/<w:delInstrText\b[^>]*>[\s\S]*?<\/w:delInstrText>/g, '');
+    // 2) remove os parágrafos com estilo de Sumário/índice.
+    return doc.replace(/<w:p\b[^>]*>[\s\S]*?<\/w:p>/g, (par) => {
+      const st = par.match(/<w:pStyle\s+w:val="([^"]+)"/);
+      return (st && ESTILO_SUMARIO.test(st[1])) ? '' : par;
+    });
+  }
 
   /**
    * Marca o document.xml (string). Pura e testável.
@@ -40,12 +60,15 @@
     const Zip = (typeof JSZip !== 'undefined') ? JSZip : (await import('jszip')).default;
     const CoresMod = (typeof Cores !== 'undefined') ? Cores : require('./cores.js');
     const ImgMod = (typeof Imagens !== 'undefined') ? Imagens : require('./imagens.js');
+    const TabMod = (typeof Tabelas !== 'undefined') ? Tabelas : require('./tabelas.js');
     // JSZip.loadAsync aceita ArrayBuffer nativamente no browser e no Node.
     const zip = await Zip.loadAsync(arrayBuffer);
     let doc = await zip.file('word/document.xml').async('string');
     let styles = await zip.file('word/styles.xml').async('string');
 
     const tamanhos = await ImgMod.mapaTamanhos(zip); // tamanho de exibição das imagens
+    const tabelasCores = TabMod.extrairCoresHeader(doc); // cor do cabeçalho das tabelas (#5)
+    doc = removerSumario(doc); // tira o Sumário/índice
     doc = marcarTarjas(doc); // tarjas azuis viram Heading1
     const cores = CoresMod.coresDoDocumento(doc);
     const comCor = CoresMod.injetarEstilosCor(doc, styles, cores);
@@ -53,10 +76,10 @@
     zip.file('word/document.xml', comCor.doc);
     zip.file('word/styles.xml', comCor.styles);
     const out = await zip.generateAsync({ type: 'arraybuffer' });
-    return { arrayBuffer: out, cores, tamanhos };
+    return { arrayBuffer: out, cores, tamanhos, tabelasCores };
   }
 
-  const api = { marcarTarjas, marcarTarjasDocx };
+  const api = { marcarTarjas, marcarTarjasDocx, removerSumario };
   if (typeof window !== 'undefined') { window.MarcarTarjas = api; }
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; }
 })();

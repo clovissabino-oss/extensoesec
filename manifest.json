@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Conversor LDI — Estratégia",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "Importa um .docx de aula para o editor de LDI preservando formatação, cores e imagens.",
   "permissions": ["activeTab", "scripting", "storage"],
   "host_permissions": [

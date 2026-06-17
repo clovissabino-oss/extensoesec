@@ -8,7 +8,7 @@ import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import mammoth from 'mammoth';
-import { marcarTarjas, marcarTarjasDocx } from '../marcarTarjas.js';
+import { marcarTarjas, marcarTarjasDocx, removerSumario } from '../marcarTarjas.js';
 
 describe('marcarTarjas (string)', () => {
   it('injeta pStyle Heading1 num parágrafo com fundo 4231A4', () => {
@@ -25,6 +25,16 @@ describe('marcarTarjas (string)', () => {
       '<w:p><w:pPr><w:pBdr><w:left w:color="4231A4"/></w:pBdr></w:pPr>' +
       '<w:r><w:t>Texto</w:t></w:r></w:p>';
     expect(marcarTarjas(xml)).not.toContain('<w:pStyle');
+  });
+
+  it('removerSumario: tira parágrafos de Sumário e neutraliza campos (fldChar)', () => {
+    const xml = '<w:p><w:pPr><w:pStyle w:val="Sumrio1"/></w:pPr><w:r><w:t>Apresentação2</w:t></w:r></w:p>'
+      + '<w:p><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText>TOC \\o</w:instrText></w:r><w:r><w:t>conteúdo real</w:t></w:r></w:p>';
+    const out = removerSumario(xml);
+    expect(out).not.toContain('Apresentação2');
+    expect(out).not.toContain('fldChar');
+    expect(out).not.toContain('instrText');
+    expect(out).toContain('conteúdo real');
   });
 
   it('marca subtítulo (fonte 16pt = sz 32) como Heading2', () => {

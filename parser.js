@@ -37,7 +37,7 @@
      * @returns {Promise<Array<{titulo:string, html:string, resumo:object}>>}
      */
     async docxParaSecoes(arrayBuffer, opts = {}) {
-      const { arrayBuffer: marcado, cores, tamanhos } = await MarcarTarjas.marcarTarjasDocx(arrayBuffer);
+      const { arrayBuffer: marcado, cores, tamanhos, tabelasCores } = await MarcarTarjas.marcarTarjasDocx(arrayBuffer);
       // Exclui o branco (#FFFFFF): só faz sentido sobre a faixa azul (que o editor
       // não aceita colar com fundo), senão vira texto branco invisível. Assim o
       // título da tarja fica na cor padrão (visível). A faixa azul é tema da V2.
@@ -51,11 +51,20 @@
       // Surface mammoth warnings (estilos não mapeados etc.) para diagnóstico.
       (messages || []).filter((m) => m.type !== 'debug').forEach((m) => console.warn('[mammoth]', m.message));
       // inlineCores: cores de fonte; aplicarTamanhos: tamanho de exibição das imagens
-      // (corrige imagens/corujas gigantes); estilizarTabelas: tabelas full-width.
-      const corpo = FatiarSecoes.estilizarTabelas(Imagens.aplicarTamanhos(Cores.inlineCores(html), tamanhos));
-      let secoes = FatiarSecoes.fatiarSecoes(sanitizarHtml(corpo), opts.dividirPor);
-      // Reproduz a tarja azul (fundo) e a caixa do subtítulo (tabela de 1 célula).
-      secoes = secoes.map((s) => ({ ...s, html: FatiarSecoes.estilizarTitulos(s.html) }));
+      // (corrige imagens/corujas gigantes); estilizarTabelas: tabelas full-width;
+      // aplicarCorTabela: preserva a cor do cabeçalho das tabelas (#5).
+      const comEstilo = FatiarSecoes.estilizarTabelas(Imagens.aplicarTamanhos(Cores.inlineCores(html), tamanhos));
+      const corpo = Tabelas.aplicarCorTabela(comEstilo, tabelasCores);
+      // Tira a <ol> de notas do fim ANTES de fatiar/sanitizar (a sanitização
+      // desembrulha as âncoras e apagaria as chamadas das notas).
+      const { html: corpoSemNotas, notas } = Notas.extrairNotas(corpo);
+      let secoes = FatiarSecoes.fatiarSecoes(corpoSemNotas, opts.dividirPor);
+      // Por seção: anexa as notas referenciadas (#9), sanitiza e reproduz a tarja
+      // azul (fundo) e a caixa do subtítulo (tabela de 1 célula).
+      secoes = secoes.map((s) => ({
+        ...s,
+        html: FatiarSecoes.estilizarTitulos(sanitizarHtml(Notas.anexarNotas(s.html, notas)))
+      }));
       if (opts.ignorarImagens) {
         secoes = secoes.map((s) => ({
           ...s,
