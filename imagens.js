@@ -55,40 +55,58 @@
    *
    * Motivo: o editor do LDI DESCARTA width/height ao colar e usa a resolução
    * nativa do PNG (enorme — corujas/figuras gigantes). Aqui redesenhamos cada
-   * <img> num <canvas> no tamanho de exibição (lido de width/height), de modo
-   * que o tamanho "nativo" passe a ser o correto — e o editor o respeite.
+   * <img> num <canvas> menor, de modo que o tamanho "nativo" passe a ser o
+   * correto — e o editor o respeite.
+   *
+   * IMPORTANTE — NUNCA distorcer: o Word costuma recortar (srcRect) e/ou escalar
+   * imagens quadradas para um retângulo largo, então o <wp:extent> tem proporção
+   * diferente da imagem real. Por isso escalamos pela LARGURA do extent
+   * PRESERVANDO a proporção nativa da imagem (a altura sai proporcional). Assim a
+   * figura fica no tamanho aproximado do doc sem achatar.
+   *
    * Só roda no navegador (precisa de canvas); no Node devolve o html intacto.
    * @param {string} html
+   * @param {Record<string,{w:number,h:number}>} mapa  base64 -> tamanho de exibição
    * @returns {Promise<string>}
    */
-  async function redimensionarImagens(html) {
-    if (typeof document === 'undefined' || !document.createElement) return html;
+  async function redimensionarImagens(html, mapa) {
+    if (!mapa || typeof document === 'undefined' || !document.createElement) return html;
     try {
       const teste = document.createElement('canvas');
       if (!teste.getContext || !teste.getContext('2d')) return html; // canvas indisponível
     } catch (e) { return html; } // jsdom sem o pacote canvas lança aqui
     const doc = new DOMParser().parseFromString(html, 'text/html');
-    const imgs = [...doc.querySelectorAll('img[width][height]')];
-    await Promise.all(imgs.map((img) => redimensionarUma(img)));
+    const imgs = [...doc.querySelectorAll('img')];
+    await Promise.all(imgs.map((img) => {
+      const src = img.getAttribute('src') || '';
+      const b64 = src.replace(/^data:image\/[^;]+;base64,/, '');
+      return redimensionarUma(img, mapa[b64]);
+    }));
     return doc.body.innerHTML;
   }
 
-  /** Redesenha uma imagem (data URL) no tamanho de exibição. Falha → mantém. */
-  function redimensionarUma(img) {
+  /** Redesenha a imagem na LARGURA de exibição, mantendo a proporção. Falha → mantém. */
+  function redimensionarUma(img, sz) {
     return new Promise((resolve) => {
-      const w = parseInt(img.getAttribute('width'), 10);
-      const h = parseInt(img.getAttribute('height'), 10);
       const src = img.getAttribute('src') || '';
-      if (!w || !h || !/^data:image\//i.test(src)) return resolve();
+      if (!sz || !sz.w || !/^data:image\//i.test(src)) return resolve();
       const im = new Image();
       im.onload = () => {
         try {
-          if (im.naturalWidth > w || im.naturalHeight > h) { // só REDUZ (nunca amplia)
-            const canvas = document.createElement('canvas');
-            canvas.width = w; canvas.height = h;
-            canvas.getContext('2d').drawImage(im, 0, 0, w, h);
-            const tipo = /^data:image\/png/i.test(src) ? 'image/png' : 'image/jpeg';
-            img.setAttribute('src', canvas.toDataURL(tipo, 0.92));
+          const nw = im.naturalWidth, nh = im.naturalHeight;
+          if (nw && nh) {
+            const w = Math.min(sz.w, nw);                       // não amplia (evita borrão)
+            const h = Math.max(1, Math.round(nh * (w / nw)));   // altura pela PROPORÇÃO nativa
+            img.setAttribute('width', String(w));
+            img.setAttribute('height', String(h));
+            img.setAttribute('style', 'width:' + w + 'px;height:' + h + 'px');
+            if (w < nw) { // reduz de fato: redesenha (corrige tamanho nativo + alivia peso)
+              const canvas = document.createElement('canvas');
+              canvas.width = w; canvas.height = h;
+              canvas.getContext('2d').drawImage(im, 0, 0, w, h);
+              const tipo = /^data:image\/png/i.test(src) ? 'image/png' : 'image/jpeg';
+              img.setAttribute('src', canvas.toDataURL(tipo, 0.92));
+            }
           }
         } catch (e) { /* mantém o original */ }
         resolve();

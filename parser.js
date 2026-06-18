@@ -55,7 +55,7 @@
       // redimensionarImagens: redesenha os bytes nesse tamanho (o editor ignora
       // width/height ao colar, então corrige de fato as imagens/corujas gigantes).
       let base = Imagens.aplicarTamanhos(Cores.inlineCores(html), tamanhos);
-      base = await Imagens.redimensionarImagens(base);
+      base = await Imagens.redimensionarImagens(base, tamanhos);
       // estilizarTabelas: tabelas full-width; aplicarCorTabela: cor do cabeçalho (#5)
       // — ANTES de agruparCaixas, para o índice das tabelas casar com o do .docx.
       const comCor = Tabelas.aplicarCorTabela(FatiarSecoes.estilizarTabelas(base), tabelasCores);
