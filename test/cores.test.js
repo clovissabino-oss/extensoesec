@@ -51,8 +51,8 @@ describe('marcações (highlight)', () => {
     expect(r.doc).not.toContain('marcayellow');
   });
 
-  it('styleMapDeMarcas mapeia para <mark>', () => {
-    expect(styleMapDeMarcas(['yellow'])).toEqual(["r[style-name='marca-yellow'] => mark.marca-yellow"]);
+  it('styleMapDeMarcas mapeia para span (o editor não tem grifo)', () => {
+    expect(styleMapDeMarcas(['yellow'])).toEqual(["r[style-name='marca-yellow'] => span.marca-yellow"]);
   });
 });
 
@@ -61,7 +61,7 @@ describe('inlineCores', () => {
     expect(inlineCores('<span class="cor-4231A4">x</span>')).toBe('<span style="color:#4231A4">x</span>');
   });
 
-  it('troca class marca-yellow por background-color (mark)', () => {
-    expect(inlineCores('<mark class="marca-yellow">x</mark>')).toBe('<mark style="background-color:#FFFF00">x</mark>');
+  it('troca class marca-yellow por cor de fonte proxy (editor não tem grifo)', () => {
+    expect(inlineCores('<span class="marca-yellow">x</span>')).toBe('<span style="color:#C55A11">x</span>');
   });
 });

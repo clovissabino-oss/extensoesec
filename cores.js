@@ -13,13 +13,17 @@
  * Envolto em IIFE (scripts clássicos compartilham o escopo global da página).
  */
 (function () {
-  // Nome da marcação do Word (<w:highlight w:val>) -> hex de fundo.
-  const HL_HEX = {
-    yellow: 'FFFF00', green: '00FF00', cyan: '00FFFF', magenta: 'FF00FF',
-    red: 'FF0000', blue: '0000FF', darkyellow: '808000', darkgreen: '008000',
-    darkcyan: '008080', darkmagenta: '800080', darkred: '800000', darkblue: '000080',
-    lightgray: 'D3D3D3', darkgray: 'A9A9A9', black: '000000', white: 'FFFFFF'
+  // Marcações (<w:highlight>): o editor do LDI NÃO tem grifo/fundo em texto
+  // (comprovado ao vivo: <mark> é descartado; textStyle só aceita `color`). Por
+  // isso, marcação vira COR DE FONTE (proxy) — sinaliza a ênfase do amarelo.
+  // Mapa nome-da-marcação -> cor de fonte legível (laranja p/ amarelo, p/ não
+  // confundir com o vermelho de notas nem o azul de ênfase). Trocar aqui se quiser.
+  const MARCA_COR = {
+    yellow: 'C55A11', green: '2E7D32', cyan: '00838F', magenta: 'AD1457',
+    red: 'C00000', blue: '1565C0', darkyellow: '7F6000', darkgreen: '1B5E20',
+    darkcyan: '00695C', darkmagenta: '6A1B9A', darkred: '8B0000', darkblue: '0D47A1'
   };
+  const MARCA_PADRAO = 'C55A11';
 
   /** Cores de fonte distintas (hex maiúsculo) usadas no document.xml. */
   function coresDoDocumento(documentXml) {
@@ -30,7 +34,7 @@
   /** Marcações (<w:highlight>) distintas usadas, restritas às conhecidas. */
   function marcacoesDoDocumento(documentXml) {
     const achadas = [...documentXml.matchAll(/<w:highlight\s+w:val="([a-zA-Z]+)"/g)]
-      .map((m) => m[1].toLowerCase()).filter((v) => HL_HEX[v] && v !== 'white'); // fundo branco é inútil
+      .map((m) => m[1].toLowerCase()).filter((v) => MARCA_COR[v]); // só as que viram cor
     return [...new Set(achadas)];
   }
 
@@ -47,7 +51,7 @@
       const mc = inner.match(/<w:color\s+w:val="([0-9A-Fa-f]{6})"/);
       if (mc) return '<w:rPr><w:rStyle w:val="cor' + mc[1].toUpperCase() + '"/>' + inner + '</w:rPr>';
       const mh = inner.match(/<w:highlight\s+w:val="([a-zA-Z]+)"/);
-      if (mh && HL_HEX[mh[1].toLowerCase()]) return '<w:rPr><w:rStyle w:val="marca' + mh[1].toLowerCase() + '"/>' + inner + '</w:rPr>';
+      if (mh && MARCA_COR[mh[1].toLowerCase()]) return '<w:rPr><w:rStyle w:val="marca' + mh[1].toLowerCase() + '"/>' + inner + '</w:rPr>';
       return full;
     });
     const defsCor = cores
@@ -65,20 +69,21 @@
     return cores.map((c) => "r[style-name='cor-" + c + "'] => span.cor-" + c);
   }
 
-  /** Entradas de styleMap para cada marcação (estilo de caractere → <mark>). */
+  /** Entradas de styleMap para cada marcação (estilo de caractere → span colorido). */
   function styleMapDeMarcas(marcas) {
-    return marcas.map((m) => "r[style-name='marca-" + m + "'] => mark.marca-" + m);
+    return marcas.map((m) => "r[style-name='marca-" + m + "'] => span.marca-" + m);
   }
 
   /**
    * Converte as classes injetadas em estilo inline preservado na colagem:
-   *  - cor-XXXXXX  -> color:#XXXXXX
-   *  - marca-NOME  -> <mark style="background-color:#hex"> (o TipTap reconhece <mark>)
+   *  - cor-XXXXXX  -> color:#XXXXXX (cor de fonte original)
+   *  - marca-NOME  -> color:#proxy  (marcação do Word vira COR DE FONTE; o editor
+   *                   não suporta grifo/fundo em texto)
    */
   function inlineCores(html) {
     return html
       .replace(/class="cor-([0-9A-Fa-f]{6})"/g, (m, c) => 'style="color:#' + c + '"')
-      .replace(/class="marca-([a-z]+)"/g, (m, n) => HL_HEX[n] ? 'style="background-color:#' + HL_HEX[n] + '"' : m);
+      .replace(/class="marca-([a-z]+)"/g, (m, n) => 'style="color:#' + (MARCA_COR[n] || MARCA_PADRAO) + '"');
   }
 
   const api = { coresDoDocumento, marcacoesDoDocumento, injetarEstilosCor, styleMapDeCores, styleMapDeMarcas, inlineCores };
