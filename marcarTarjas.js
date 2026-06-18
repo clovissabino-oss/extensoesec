@@ -109,12 +109,13 @@
     doc = marcarTarjas(doc); // tarjas azuis viram Heading1
     doc = marcarCaixas(doc, estilosDeTitulo(styles)); // parágrafos com borda viram "Caixa" (exceto títulos)
     const cores = CoresMod.coresDoDocumento(doc);
-    const comCor = CoresMod.injetarEstilosCor(doc, styles, cores);
+    const marcas = CoresMod.marcacoesDoDocumento(doc); // marcações (highlight) usadas
+    const comCor = CoresMod.injetarEstilosCor(doc, styles, cores, marcas);
 
     zip.file('word/document.xml', comCor.doc);
     zip.file('word/styles.xml', comCor.styles);
     const out = await zip.generateAsync({ type: 'arraybuffer' });
-    return { arrayBuffer: out, cores, tamanhos, tabelasCores };
+    return { arrayBuffer: out, cores, marcas, tamanhos, tabelasCores };
   }
 
   const api = { marcarTarjas, marcarTarjasDocx, removerSumario, marcarCaixas };

@@ -37,7 +37,7 @@
      * @returns {Promise<Array<{titulo:string, html:string, resumo:object}>>}
      */
     async docxParaSecoes(arrayBuffer, opts = {}) {
-      const { arrayBuffer: marcado, cores, tamanhos, tabelasCores } = await MarcarTarjas.marcarTarjasDocx(arrayBuffer);
+      const { arrayBuffer: marcado, cores, marcas, tamanhos, tabelasCores } = await MarcarTarjas.marcarTarjasDocx(arrayBuffer);
       // Exclui o branco (#FFFFFF): só faz sentido sobre a faixa azul (que o editor
       // não aceita colar com fundo), senão vira texto branco invisível. Assim o
       // título da tarja fica na cor padrão (visível). A faixa azul é tema da V2.
@@ -47,7 +47,8 @@
         "p[style-name='heading 2'] => h2:fresh",
         "p[style-name='heading 3'] => h3:fresh",
         "p[style-name='Caixa'] => p.caixa:fresh" // parágrafos com borda (caixas) → agrupados depois
-      ].concat(Cores.styleMapDeCores(coresVisiveis)); // preserva as cores de fonte
+      ].concat(Cores.styleMapDeCores(coresVisiveis)) // preserva as cores de fonte
+        .concat(Cores.styleMapDeMarcas(marcas || [])); // preserva as marcações (highlight → <mark>)
       const { value: html, messages } = await mammoth.convertToHtml({ arrayBuffer: marcado }, { styleMap });
       // Surface mammoth warnings (estilos não mapeados etc.) para diagnóstico.
       (messages || []).filter((m) => m.type !== 'debug').forEach((m) => console.warn('[mammoth]', m.message));
@@ -59,8 +60,9 @@
       // estilizarTabelas: tabelas full-width; aplicarCorTabela: cor do cabeçalho (#5)
       // — ANTES de agruparCaixas, para o índice das tabelas casar com o do .docx.
       const comCor = Tabelas.aplicarCorTabela(FatiarSecoes.estilizarTabelas(base), tabelasCores);
-      // agruparCaixas: parágrafos com borda viram tabela de 1 célula com borda.
-      const corpo = FatiarSecoes.agruparCaixas(comCor);
+      // agruparCaixas: parágrafos com borda viram tabela de 1 célula com borda;
+      // preencherCelulasVazias: dá altura às linhas em branco (ex.: Folha resposta).
+      const corpo = FatiarSecoes.preencherCelulasVazias(FatiarSecoes.agruparCaixas(comCor));
       // Tira a <ol> de notas do fim ANTES de fatiar/sanitizar (a sanitização
       // desembrulha as âncoras e apagaria as chamadas das notas).
       const { html: corpoSemNotas, notas } = Notas.extrairNotas(corpo);

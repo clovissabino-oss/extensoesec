@@ -1,6 +1,6 @@
 // test/fatiarSecoes.test.js
 import { describe, it, expect } from 'vitest';
-import { fatiarSecoes, estilizarTitulos, estilizarTabelas, agruparCaixas } from '../fatiarSecoes.js';
+import { fatiarSecoes, estilizarTitulos, estilizarTabelas, agruparCaixas, preencherCelulasVazias } from '../fatiarSecoes.js';
 
 const html =
   '<h1>Apresentação</h1>' +
@@ -89,10 +89,22 @@ describe('agruparCaixas', () => {
   });
 });
 
+describe('preencherCelulasVazias', () => {
+  it('preenche <td></td> com parágrafo de espaço (dá altura à linha)', () => {
+    expect(preencherCelulasVazias('<td></td>')).toBe('<td><p>&nbsp;</p></td>');
+  });
+  it('preenche célula só com <p></p> vazio', () => {
+    expect(preencherCelulasVazias('<td colspan="1"><p></p></td>')).toBe('<td colspan="1"><p>&nbsp;</p></td>');
+  });
+  it('não mexe em célula com conteúdo', () => {
+    expect(preencherCelulasVazias('<td><p>texto</p></td>')).toBe('<td><p>texto</p></td>');
+  });
+});
+
 describe('estilizarTabelas', () => {
   it('marca tabela de conteúdo como full-width', () => {
     expect(estilizarTabelas('<table><tr><td>x</td></tr></table>'))
-      .toBe('<table class="full-width-table"><tr><td>x</td></tr></table>');
+      .toBe('<table fullwidth="true" class="full-width-table"><tr><td>x</td></tr></table>');
   });
   it('não duplica classe em tabela que já tem class', () => {
     const t = '<table class="full-width-table"><tr><td>x</td></tr></table>';

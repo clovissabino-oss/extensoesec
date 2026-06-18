@@ -71,7 +71,21 @@
    * (ex.: as tarjas/subtítulos criados por estilizarTitulos).
    */
   function estilizarTabelas(html) {
-    return html.replace(/<table\b(?![^>]*\bclass=)([^>]*)>/gi, '<table class="full-width-table"$1>');
+    // fullwidth="true" + classe: é a estrutura que o editor honra para largura
+    // cheia (a tarja, que funciona, usa os dois — só a classe deixava estreito).
+    return html.replace(/<table\b(?![^>]*\bclass=)([^>]*)>/gi, '<table fullwidth="true" class="full-width-table"$1>');
+  }
+
+  /**
+   * Dá conteúdo às células de tabela vazias (ex.: as 30 linhas em branco da
+   * "Folha resposta"). O editor do LDI COLAPSA células sem conteúdo, então as
+   * linhas do "caderno" sumiam/cortavam. Preenche com um parágrafo de espaço
+   * (&nbsp;) para garantir a altura da linha.
+   */
+  function preencherCelulasVazias(html) {
+    return html
+      .replace(/<td\b([^>]*)>\s*<\/td>/gi, '<td$1><p>&nbsp;</p></td>')
+      .replace(/<td\b([^>]*)>\s*<p>\s*<\/p>\s*<\/td>/gi, '<td$1><p>&nbsp;</p></td>');
   }
 
   function estilizarTitulos(html) {
@@ -106,6 +120,7 @@
       }
       const tabela = doc.createElement('table');
       tabela.className = 'full-width-table';
+      tabela.setAttribute('fullwidth', 'true'); // largura cheia (igual à tarja)
       const tbody = doc.createElement('tbody');
       const tr = doc.createElement('tr');
       const td = doc.createElement('td');
@@ -122,7 +137,7 @@
     return doc.body.innerHTML;
   }
 
-  const api = { fatiarSecoes, estilizarTitulos, estilizarTabelas, agruparCaixas };
+  const api = { fatiarSecoes, estilizarTitulos, estilizarTabelas, agruparCaixas, preencherCelulasVazias };
   if (typeof window !== 'undefined') { window.FatiarSecoes = api; }
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; }
 })();
